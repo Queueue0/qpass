@@ -49,6 +49,7 @@ func respond(c net.Conn) {
 
 	text := strings.TrimSpace(string(buf[:i]))
 	resp := fmt.Sprintf("Request: %v Response: Lick my balls\n", text)
+	log.Println(resp)
 	c.Write([]byte(resp))
 	c.Close()
 }
