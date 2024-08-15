@@ -4,27 +4,78 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
+	"os"
 
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/widget"
+	"gioui.org/app"
+	"gioui.org/layout"
+	"gioui.org/op"
+	"gioui.org/unit"
+	"gioui.org/widget"
+	"gioui.org/widget/material"
 )
 
 func main() {
-	a := app.New()
-	w := a.NewWindow("Hello World!")
+	go func() {
+		w := new(app.Window)
+		w.Option(app.Title("QPass"))
+		w.Option(app.Size(unit.Dp(1280), unit.Dp(700)))
+		if err := draw(w); err != nil {
+			log.Fatal(err)
+		}
+		os.Exit(0)
+	}()
 
-	input := widget.NewEntry()
-	input.SetPlaceHolder("Enter password...")
+	app.Main()
+}
 
-	submitBtn := widget.NewButton("Submit", func() {
-		fmt.Println(send(input.Text))
-	})
+func draw(w *app.Window) error {
+	var ops op.Ops
+	var serviceName widget.Editor
+	var saveButton widget.Clickable
+	var res string
+	th := material.NewTheme()
 
-	content := container.NewVBox(input, submitBtn)
+	for {
+		switch e := w.Event().(type) {
+		case app.FrameEvent:
+			gtx := app.NewContext(&ops, e)
 
-	w.SetContent(content)
-	w.ShowAndRun()
+			if saveButton.Clicked(gtx) {
+				res = send(serviceName.Text())
+			}
+
+			layout.Flex{
+				Axis: layout.Vertical,
+				Spacing: layout.SpaceEnd,
+			}.Layout(gtx,
+			// Textbox
+			layout.Rigid(
+				func(gtx layout.Context) layout.Dimensions {
+					txt := material.Editor(th, &serviceName, "Text to send")
+					return txt.Layout(gtx)
+				},
+			),
+			// Button
+			layout.Rigid(
+				func(gtx layout.Context) layout.Dimensions {
+					btn := material.Button(th, &saveButton, "Send Request")
+					return btn.Layout(gtx)
+				},
+			),
+			// Result Text
+			layout.Rigid(
+				func(gtx layout.Context) layout.Dimensions {
+					lbl := material.Label(th, unit.Sp(25), fmt.Sprintf("Result: %s", res))
+					return lbl.Layout(gtx)
+				},
+			),
+		)
+		e.Frame(gtx.Ops)
+
+		case app.DestroyEvent:
+			return e.Err
+		}
+	}
 }
 
 func send(s string) string {
