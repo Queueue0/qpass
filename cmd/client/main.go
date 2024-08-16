@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/tls"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +12,7 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/Queueue0/qpass/internal/crypto"
 )
 
 func main() {
@@ -41,7 +42,11 @@ func draw(w *app.Window) error {
 			gtx := app.NewContext(&ops, e)
 
 			if saveButton.Clicked(gtx) {
-				res = send(serviceName.Text())
+				bres, err := crypto.GetKey(serviceName.Text())
+				if err != nil {
+					log.Fatal(err)
+				}
+				res = hex.EncodeToString(bres)
 			}
 
 			layout.Flex{
@@ -76,21 +81,4 @@ func draw(w *app.Window) error {
 			return e.Err
 		}
 	}
-}
-
-func send(s string) string {
-	conf := tls.Config{
-		InsecureSkipVerify: true,
-	}
-	c, err := tls.Dial("tcp", "localhost:1717", &conf)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	c.Write([]byte(s))
-
-	buffer := make([]byte, 1024)
-	_, err = c.Read(buffer)
-
-	return string(buffer[:])
 }
