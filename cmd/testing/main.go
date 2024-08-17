@@ -17,12 +17,12 @@ func main() {
 	}
 
 	key := crypto.GetKey(passwd, salt)
-	encrypted, err := crypto.Encrypt(key, text)
+	encrypted, err := crypto.Encrypt(text, key)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	decrypted, err := crypto.Decrypt(key, encrypted)
+	decrypted, err := crypto.Decrypt(encrypted, key)
 	if err != nil {
 		log.Fatal(err)
 	}

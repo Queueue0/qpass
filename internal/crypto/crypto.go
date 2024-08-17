@@ -8,7 +8,7 @@ import (
 	chacha "golang.org/x/crypto/chacha20poly1305"
 )
 
-func Encrypt(key []byte, s string) (string, error) {
+func Encrypt(s string, key []byte) (string, error) {
 	aead, err := chacha.NewX(key)
 	if err != nil {
 		return "", err
@@ -27,7 +27,7 @@ func Encrypt(key []byte, s string) (string, error) {
 	return encStr, nil
 }
 
-func Decrypt(key []byte, s string) (string, error) {
+func Decrypt(s string, key []byte) (string, error) {
 	b, err := base64.RawStdEncoding.DecodeString(s)
 	if err != nil {
 		return "", err
