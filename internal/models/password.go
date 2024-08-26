@@ -18,6 +18,8 @@ type Password struct {
 	ePassword    string
 }
 
+type PasswordList []Password
+
 func (p *Password) decrypt(u User) error {
 	var err error
 	p.ServiceName, err = crypto.Decrypt(p.eServiceName, u.Key)
@@ -36,6 +38,11 @@ func (p *Password) decrypt(u User) error {
 	}
 
 	return nil
+}
+
+// Probably not the best way to write this...
+func (p *Password) isDecrypted() bool {
+	return p.ServiceName != "" && p.Username != "" && p.Password != ""
 }
 
 type PasswordModel struct {
@@ -72,10 +79,33 @@ func (m *PasswordModel) Insert(u User, serviceName, username, password string) (
 	return int(id), nil
 }
 
-func (m *PasswordModel) GetAllForUser(u User) ([]Password, error) {
-	return []Password{}, nil
+func (m *PasswordModel) GetAllForUser(u User) (PasswordList, error) {
+	stmt := `SELECT id, userID, service, username, password FROM passwords WHERE userID = ?`
+	rows, err := m.DB.Query(stmt, u.ID)
+	if err != nil {
+		return []Password{}, err
+	}
+
+	pws := []Password{}
+	for rows.Next() {
+		pw := Password{}
+		err := rows.Scan(&pw.ID, &pw.UserID, &pw.eServiceName, &pw.eUsername, &pw.ePassword)
+		if err != nil {
+			return []Password{}, err
+		}
+
+		err = pw.decrypt(u)
+		if err != nil {
+			return []Password{}, err
+		}
+
+		pws = append(pws, pw)
+	}
+
+	return pws, nil
 }
 
-func (m *PasswordModel) Search(u User, searchTerm string) ([]Password, error) {
+func (pl PasswordList) Search(u User, searchTerm string) (PasswordList, error) {
+
 	return []Password{}, nil
 }
