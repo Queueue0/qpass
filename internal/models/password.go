@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"strings"
 
 	"github.com/Queueue0/qpass/internal/crypto"
 )
@@ -105,7 +106,22 @@ func (m *PasswordModel) GetAllForUser(u User) (PasswordList, error) {
 	return pws, nil
 }
 
-func (pl PasswordList) Search(u User, searchTerm string) (PasswordList, error) {
+func (pl PasswordList) Search(searchTerm string) PasswordList {
+	res := PasswordList{}	
+	for _, p := range pl {
+		if !p.isDecrypted() {
+			continue
+		}
 
-	return []Password{}, nil
+		if strings.Contains(p.ServiceName, searchTerm) {
+			res = append(res, p)
+			continue
+		}
+
+		if strings.Contains(p.Username, searchTerm) {
+			res = append(res, p)
+			continue
+		}
+	}
+	return res
 }
