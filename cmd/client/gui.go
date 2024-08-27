@@ -88,6 +88,8 @@ func (a *Application) loginView(w *app.Window) error {
 					errorTxt = err.Error()
 				} else {
 					a.ActiveUser = &u
+					// TODO: handle this error
+					a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser)
 					w.Perform(system.ActionClose)
 				}
 			}

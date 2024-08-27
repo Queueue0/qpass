@@ -13,8 +13,10 @@ import (
 )
 
 type Application struct {
-	UserModel  *models.UserModel
-	ActiveUser *models.User
+	UserModel     *models.UserModel
+	ActiveUser    *models.User
+	PasswordModel *models.PasswordModel
+	Passwords     models.PasswordList
 }
 
 func main() {
@@ -38,8 +40,13 @@ func main() {
 		DB: db,
 	}
 
+	pm := models.PasswordModel{
+		DB: db,
+	}
+
 	a := Application{
 		UserModel: &um,
+		PasswordModel: &pm,
 	}
 
 	go func() {
