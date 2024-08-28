@@ -10,6 +10,7 @@ import (
 	"gioui.org/app"
 	"gioui.org/unit"
 	"github.com/Queueue0/qpass/internal/models"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type Application struct {
@@ -30,6 +31,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer db.Close()
 
 	err = initializeDB(db)
 	if err != nil {

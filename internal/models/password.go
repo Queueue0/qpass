@@ -33,7 +33,7 @@ func (p *Password) decrypt(u User) error {
 		return err
 	}
 
-	p.ePassword, err = crypto.Decrypt(p.ePassword, u.Key)
+	p.Password, err = crypto.Decrypt(p.ePassword, u.Key)
 	if err != nil {
 		return err
 	}
@@ -53,28 +53,28 @@ type PasswordModel struct {
 func (m *PasswordModel) Insert(u User, serviceName, username, password string) (int, error) {
 	eServiceName, err := crypto.Encrypt(serviceName, u.Key)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	eUsername, err := crypto.Encrypt(username, u.Key)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	ePassword, err := crypto.Encrypt(password, u.Key)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	stmt := `INSERT INTO passwords (userID, service, username, password) VALUES (?, ?, ?, ?)`
 	result, err := m.DB.Exec(stmt, u.ID, eServiceName, eUsername, ePassword)
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 
 	return int(id), nil

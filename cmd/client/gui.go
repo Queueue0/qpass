@@ -13,14 +13,18 @@ import (
 	"gioui.org/widget/material"
 )
 
-var borderColor = color.NRGBA{R: 50, G: 50, B: 50, A: 255}
+var borderColor = color.NRGBA{R: 100, G: 100, B: 100, A: 200}
+var inputPadding = unit.Dp(10)
 
 func (a *Application) mainView(w *app.Window) error {
 	var ops op.Ops
 	var serviceName widget.Editor
 	var saveButton widget.Clickable
+	var pwlist widget.List
 	var res string = a.ActiveUser.Username
 	th := material.NewTheme()
+
+	pwlist.List.Axis = layout.Vertical
 
 	for {
 		switch e := w.Event().(type) {
@@ -60,6 +64,17 @@ func (a *Application) mainView(w *app.Window) error {
 						return lbl.Layout(gtx)
 					},
 				),
+				// Password list
+				layout.Rigid(
+					func(gtx layout.Context) layout.Dimensions {
+						list := material.List(th, &pwlist)
+						return list.Layout(gtx, len(a.Passwords), func(gtx layout.Context, i int) layout.Dimensions {
+							p := a.Passwords[i]
+							lbl := material.Label(th, unit.Sp(16), fmt.Sprintf("%s\t%s\t%s", p.ServiceName, p.Username, p.Password))
+							return lbl.Layout(gtx)
+						})
+					},
+				),
 			)
 			e.Frame(gtx.Ops)
 
@@ -77,20 +92,40 @@ func (a *Application) loginView(w *app.Window) error {
 	var errorTxt string
 	th := material.NewTheme()
 
+	var login = func() {
+		u, err := a.UserModel.Authenticate(userName.Text(), password.Text())
+		if err != nil {
+			errorTxt = err.Error()
+		} else {
+			a.ActiveUser = &u
+			// TODO: handle this error
+			a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser)
+			w.Perform(system.ActionClose)
+		}
+	}
+
 	for {
 		switch e := w.Event().(type) {
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
 
 			if loginBtn.Clicked(gtx) {
-				u, err := a.UserModel.Authenticate(userName.Text(), password.Text())
-				if err != nil {
-					errorTxt = err.Error()
-				} else {
-					a.ActiveUser = &u
-					// TODO: handle this error
-					a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser)
-					w.Perform(system.ActionClose)
+				login()
+			}
+
+			we, ok := userName.Update(gtx)
+			if ok {
+				switch we.(type) {
+				case widget.SubmitEvent:
+					login()
+				}
+			}
+
+			we, ok = password.Update(gtx)
+			if ok {
+				switch we.(type) {
+				case widget.SubmitEvent:
+					login()
 				}
 			}
 
@@ -110,15 +145,10 @@ func (a *Application) loginView(w *app.Window) error {
 					func(gtx layout.Context) layout.Dimensions {
 						txt := material.Editor(th, &userName, "Username")
 						userName.SingleLine = true
-						userName.LineHeight = unit.Sp(20)
-						userName.LineHeightScale = 1
+						userName.Submit = true
 
-						margins := layout.Inset{
-							Top:    unit.Dp(10),
-							Right:  unit.Dp(10),
-							Bottom: unit.Dp(10),
-							Left:   unit.Dp(10),
-						}
+						margins := layout.UniformInset(unit.Dp(10))
+						padding := layout.UniformInset(inputPadding)
 
 						border := widget.Border{
 							Color:        borderColor,
@@ -128,7 +158,11 @@ func (a *Application) loginView(w *app.Window) error {
 
 						return margins.Layout(gtx,
 							func(gtx layout.Context) layout.Dimensions {
-								return border.Layout(gtx, txt.Layout)
+								return border.Layout(gtx,
+									func(gtx layout.Context) layout.Dimensions {
+										return padding.Layout(gtx, txt.Layout)
+									},
+								)
 							},
 						)
 					},
@@ -139,13 +173,10 @@ func (a *Application) loginView(w *app.Window) error {
 						txt := material.Editor(th, &password, "Password")
 						password.SingleLine = true
 						password.Mask = '*'
+						password.Submit = true
 
-						margins := layout.Inset{
-							Top:    unit.Dp(10),
-							Right:  unit.Dp(10),
-							Bottom: unit.Dp(10),
-							Left:   unit.Dp(10),
-						}
+						margins := layout.UniformInset(unit.Dp(10))
+						padding := layout.UniformInset(inputPadding)
 
 						border := widget.Border{
 							Color:        borderColor,
@@ -155,7 +186,11 @@ func (a *Application) loginView(w *app.Window) error {
 
 						return margins.Layout(gtx,
 							func(gtx layout.Context) layout.Dimensions {
-								return border.Layout(gtx, txt.Layout)
+								return border.Layout(gtx,
+									func(gtx layout.Context) layout.Dimensions {
+										return padding.Layout(gtx, txt.Layout)
+									},
+								)
 							},
 						)
 					},
@@ -165,12 +200,7 @@ func (a *Application) loginView(w *app.Window) error {
 					func(gtx layout.Context) layout.Dimensions {
 						btn := material.Button(th, &loginBtn, "Log In")
 
-						margins := layout.Inset{
-							Top:    unit.Dp(10),
-							Right:  unit.Dp(10),
-							Bottom: unit.Dp(10),
-							Left:   unit.Dp(10),
-						}
+						margins := layout.UniformInset(unit.Dp(10))
 
 						return margins.Layout(gtx,
 							func(gtx layout.Context) layout.Dimensions {
