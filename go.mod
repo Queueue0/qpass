@@ -4,6 +4,7 @@ go 1.22.4
 
 require (
 	gioui.org v0.7.1
+	gioui.org/x v0.7.1
 	github.com/mattn/go-sqlite3 v1.14.22
 	golang.org/x/crypto v0.26.0
 )

@@ -5,12 +5,14 @@ import (
 	"image/color"
 
 	"gioui.org/app"
+	"gioui.org/font"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"gioui.org/x/component"
 )
 
 var borderColor = color.NRGBA{R: 100, G: 100, B: 100, A: 200}
@@ -67,15 +69,53 @@ func (a *Application) mainView(w *app.Window) error {
 				// Password list
 				layout.Rigid(
 					func(gtx layout.Context) layout.Dimensions {
-						list := material.List(th, &pwlist)
-						return list.Layout(gtx, len(a.Passwords), func(gtx layout.Context, i int) layout.Dimensions {
-							p := a.Passwords[i]
-							lbl := material.Label(th, unit.Sp(16), fmt.Sprintf("%s\t%s\t%s", p.ServiceName, p.Username, p.Password))
-							return lbl.Layout(gtx)
-						})
-					},
-				),
-			)
+						var grid component.GridState
+						text := material.Body1(th, "")
+						text.MaxLines = 1
+
+						inset := layout.UniformInset(unit.Dp(2))
+						dims := inset.Layout(gtx, text.Layout)
+						cols := 3
+
+						colNames := []string{"Service", "Username", "Password"}
+						return component.Table(th, &grid).Layout(gtx, len(a.Passwords), cols,
+							// Dimensioner
+							func(axis layout.Axis, i, c int) int {
+								switch axis {
+								case layout.Horizontal:
+									minWidth := gtx.Dp(unit.Dp(50))
+									return max(int(float32(c)/float32(cols)), minWidth)
+								default:
+									return dims.Size.Y
+								}
+							},
+							// Header
+							func(gtx layout.Context, i int) layout.Dimensions {
+								return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									text.Text = ""
+									text.Text = colNames[i]
+									text.Font.Weight = font.Bold
+									return text.Layout(gtx)
+								})
+							},
+							// Rows
+							func(gtx layout.Context, row, col int) layout.Dimensions {
+								return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+									text.Text = ""
+									text.Font.Weight = font.Normal
+									switch col {
+									case 0:
+										text.Text = a.Passwords[row].ServiceName
+									case 1:
+										text.Text = a.Passwords[row].Username
+									case 2:
+										text.Text = a.Passwords[row].Password
+									}
+
+									return text.Layout(gtx)
+								})
+							})
+					}))
 			e.Frame(gtx.Ops)
 
 		case app.DestroyEvent:

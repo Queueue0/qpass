@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 
 	"github.com/Queueue0/qpass/internal/models"
@@ -40,14 +41,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	_, err = pm.Insert(u, "testPlatform", "testUser", "testPassword")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_, err = pm.Insert(u, "google", "testuser@gmail.com", "testgmail")
-	if err != nil {
-		log.Fatal(err)
+	for i := 0; i < 200; i++ {
+		_, err = pm.Insert(u, randSeq(8), randSeq(8), randSeq(8))
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
@@ -77,4 +75,14 @@ func openDB(dsn string) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }
