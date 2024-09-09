@@ -41,11 +41,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	for i := 0; i < 200; i++ {
-		_, err = pm.Insert(u, randSeq(8), randSeq(8), randSeq(8))
-		if err != nil {
-			log.Fatal(err)
-		}
+	_, err = pm.Insert(u, "Service", "Username", "Password")
+	if err != nil {
+		log.Fatal(err)
 	}
 }
 

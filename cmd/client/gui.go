@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"strings"
 
 	"gioui.org/app"
 	"gioui.org/font"
@@ -12,18 +13,55 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
-	"gioui.org/x/component"
+	"github.com/Queueue0/qpass/internal/models"
+	"github.com/tiagomelo/go-clipboard/clipboard"
 )
 
 var borderColor = color.NRGBA{R: 100, G: 100, B: 100, A: 200}
 var inputPadding = unit.Dp(10)
 
+type gPassword struct {
+	ServiceName string
+	Username    string
+	Password    string
+	Shown       bool
+	ShowBtn     *widget.Clickable
+	CopyBtn     *widget.Clickable
+}
+
+func (p *gPassword) copy() {
+	c := clipboard.New()
+	err := c.CopyText(p.Password)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (p *gPassword) toggleShow() {
+	p.Shown = !p.Shown
+}
+
+func newGPassword(p models.Password) gPassword {
+	return gPassword{
+		ServiceName: p.ServiceName,
+		Username:    p.Username,
+		Password:    p.Password,
+		Shown:       false,
+		ShowBtn:     &widget.Clickable{},
+		CopyBtn:     &widget.Clickable{},
+	}
+}
+
 func (a *Application) mainView(w *app.Window) error {
+	pws := []*gPassword{}
+	for _, p := range a.Passwords {
+		gp := newGPassword(p)
+		pws = append(pws, &gp)
+	}
+
 	var ops op.Ops
-	var serviceName widget.Editor
-	var saveButton widget.Clickable
+	var addBtn widget.Clickable
 	var pwlist widget.List
-	var res string = a.ActiveUser.Username
 	th := material.NewTheme()
 
 	pwlist.List.Axis = layout.Vertical
@@ -33,86 +71,152 @@ func (a *Application) mainView(w *app.Window) error {
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
 
-			//			if saveButton.Clicked(gtx) {
-			//				bres, err := crypto.GetKey(serviceName.Text())
-			//				if err != nil {
-			//					log.Fatal(err)
-			//				}
-			//				res = hex.EncodeToString(bres)
-			//			}
+			if addBtn.Clicked(gtx) {
+				fmt.Println("Add btn clicked")
+			}
+
+			for i := range pws {
+				p := pws[i]
+				if p.CopyBtn.Clicked(gtx) {
+					p.copy()
+				}
+
+				if p.ShowBtn.Clicked(gtx) {
+					p.toggleShow()
+				}
+			}
 
 			layout.Flex{
 				Axis:    layout.Vertical,
 				Spacing: layout.SpaceEnd,
 			}.Layout(gtx,
-				// Textbox
-				layout.Rigid(
-					func(gtx layout.Context) layout.Dimensions {
-						txt := material.Editor(th, &serviceName, "Text to send")
-						return txt.Layout(gtx)
-					},
-				),
 				// Button
 				layout.Rigid(
 					func(gtx layout.Context) layout.Dimensions {
-						btn := material.Button(th, &saveButton, "Send Request")
-						return btn.Layout(gtx)
+						inset := layout.UniformInset(unit.Dp(10))
+						btn := material.Button(th, &addBtn, "+ Add New")
+						return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions{
+							return btn.Layout(gtx)
+						})
 					},
 				),
-				// Result Text
+				// Header
 				layout.Rigid(
 					func(gtx layout.Context) layout.Dimensions {
-						lbl := material.Label(th, unit.Sp(25), fmt.Sprintf("Logged In As: %s", res))
-						return lbl.Layout(gtx)
+						inset := layout.UniformInset(unit.Dp(2))
+						inset.Right = unit.Dp(24)
+						text := material.Body1(th, "")
+						text.MaxLines = 1
+
+						return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return layout.Flex{
+								Axis:    layout.Horizontal,
+								Spacing: layout.SpaceEnd,
+							}.Layout(gtx,
+								layout.Flexed(1,
+									func(gtx layout.Context) layout.Dimensions {
+										text.Text = ""
+										text.Font.Weight = font.Bold
+										text.Text = "Service Name"
+										return text.Layout(gtx)
+									},
+								),
+								layout.Flexed(1,
+									func(gtx layout.Context) layout.Dimensions {
+										text.Text = ""
+										text.Font.Weight = font.Bold
+										text.Text = "Username"
+										return text.Layout(gtx)
+									},
+								),
+								layout.Flexed(1,
+									func(gtx layout.Context) layout.Dimensions {
+										text.Text = ""
+										text.Font.Weight = font.Bold
+										text.Text = " Password"
+										return text.Layout(gtx)
+									},
+								),
+							)
+						})
 					},
 				),
 				// Password list
 				layout.Rigid(
 					func(gtx layout.Context) layout.Dimensions {
-						var grid component.GridState
+						// var grid outlay.Grid
 						text := material.Body1(th, "")
 						text.MaxLines = 1
 
 						inset := layout.UniformInset(unit.Dp(2))
-						dims := inset.Layout(gtx, text.Layout)
-						cols := 3
+						// dims := inset.Layout(gtx, text.Layout)
 
-						colNames := []string{"Service", "Username", "Password"}
-						return component.Table(th, &grid).Layout(gtx, len(a.Passwords), cols,
-							// Dimensioner
-							func(axis layout.Axis, i, c int) int {
-								switch axis {
-								case layout.Horizontal:
-									minWidth := gtx.Dp(unit.Dp(50))
-									return max(int(float32(c)/float32(cols)), minWidth)
-								default:
-									return dims.Size.Y
-								}
-							},
-							// Header
-							func(gtx layout.Context, i int) layout.Dimensions {
-								return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									text.Text = ""
-									text.Text = colNames[i]
-									text.Font.Weight = font.Bold
-									return text.Layout(gtx)
-								})
-							},
+						list := material.List(th, &pwlist)
+						return list.Layout(gtx, len(pws),
 							// Rows
-							func(gtx layout.Context, row, col int) layout.Dimensions {
+							func(gtx layout.Context, i int) layout.Dimensions {
+								p := pws[i]
 								return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
-									text.Text = ""
-									text.Font.Weight = font.Normal
-									switch col {
-									case 0:
-										text.Text = a.Passwords[row].ServiceName
-									case 1:
-										text.Text = a.Passwords[row].Username
-									case 2:
-										text.Text = a.Passwords[row].Password
-									}
-
-									return text.Layout(gtx)
+									return layout.Flex{
+										Axis:    layout.Horizontal,
+										Spacing: layout.SpaceEnd,
+									}.Layout(gtx,
+										layout.Flexed(1,
+											func(gtx layout.Context) layout.Dimensions {
+												text.Text = ""
+												text.Font.Weight = font.Normal
+												text.Text = p.ServiceName
+												return text.Layout(gtx)
+											},
+										),
+										layout.Flexed(1,
+											func(gtx layout.Context) layout.Dimensions {
+												text.Text = ""
+												text.Font.Weight = font.Normal
+												text.Text = p.Username
+												return text.Layout(gtx)
+											},
+										),
+										layout.Flexed(1,
+											func(gtx layout.Context) layout.Dimensions {
+												return layout.Flex{
+													Axis:    layout.Horizontal,
+													Spacing: layout.SpaceEnd,
+												}.Layout(gtx,
+													layout.Flexed(2,
+														func(gtx layout.Context) layout.Dimensions {
+															text.Text = ""
+															text.Font.Weight = font.Normal
+															if p.Shown {
+																text.Text = p.Password
+															} else {
+																text.Text = strings.Repeat("*", len(p.Password))
+															}
+															return text.Layout(gtx)
+														},
+													),
+													layout.Flexed(1,
+														func(gtx layout.Context) layout.Dimensions {
+															var bt string
+															if p.Shown {
+																bt = "Hide"
+															} else {
+																bt = "Show"
+															}
+															btn := material.Button(th, p.ShowBtn, bt)
+															return btn.Layout(gtx)
+														},
+													),
+													layout.Flexed(1,
+														func(gtx layout.Context) layout.Dimensions {
+															btn := material.Button(th, p.CopyBtn, "Copy")
+															return btn.Layout(gtx)
+														},
+													),
+												)
+											},
+										),
+									)
 								})
 							})
 					}))
