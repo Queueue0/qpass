@@ -72,7 +72,19 @@ func (a *Application) mainView(w *app.Window) error {
 			gtx := app.NewContext(&ops, e)
 
 			if addBtn.Clicked(gtx) {
-				fmt.Println("Add btn clicked")
+				go func() {
+					aw := new(app.Window)
+					aw.Option(app.Title("New Password"))
+					aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
+					if err := a.addView(aw); err != nil {
+						fmt.Println(err.Error())
+					}
+					pws = []*gPassword{}
+					for _, p := range a.Passwords {
+						gp := newGPassword(p)
+						pws = append(pws, &gp)
+					}
+				}()
 			}
 
 			for i := range pws {
@@ -95,7 +107,7 @@ func (a *Application) mainView(w *app.Window) error {
 					func(gtx layout.Context) layout.Dimensions {
 						inset := layout.UniformInset(unit.Dp(10))
 						btn := material.Button(th, &addBtn, "+ Add New")
-						return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions{
+						return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
 							return btn.Layout(gtx)
 						})
 					},
@@ -351,6 +363,139 @@ func (a *Application) loginView(w *app.Window) error {
 								return btn.Layout(gtx)
 							},
 						)
+					},
+				),
+			)
+			e.Frame(gtx.Ops)
+
+		case app.DestroyEvent:
+			return e.Err
+		}
+	}
+}
+
+func (a *Application) addView(w *app.Window) error {
+	var ops op.Ops
+	var serviceName widget.Editor
+	var userName widget.Editor
+	var password widget.Editor
+	var addBtn widget.Clickable
+
+	th := material.NewTheme()
+
+	for {
+		switch e := w.Event().(type) {
+		case app.FrameEvent:
+			gtx := app.NewContext(&ops, e)
+
+			if addBtn.Clicked(gtx) {
+				sn, un, pw := serviceName.Text(), userName.Text(), password.Text()
+				id, err := a.PasswordModel.Insert(*a.ActiveUser, sn, un, pw)
+				if err != nil {
+					return err
+				}
+				p := models.Password{
+					ID:          id,
+					UserID:      a.ActiveUser.ID,
+					ServiceName: sn,
+					Username:    un,
+					Password:    pw,
+				}
+
+				a.Passwords = append(a.Passwords, p)
+				a.Passwords.Sort()
+				w.Perform(system.ActionClose)
+			}
+
+			layout.Flex{
+				Axis:    layout.Vertical,
+				Spacing: layout.SpaceEnd,
+			}.Layout(gtx,
+				layout.Rigid(
+					func(gtx layout.Context) layout.Dimensions {
+						txt := material.Editor(th, &serviceName, "Service Name")
+						serviceName.SingleLine = true
+						serviceName.Submit = true
+
+						margins := layout.UniformInset(unit.Dp(10))
+						padding := layout.UniformInset(inputPadding)
+
+						border := widget.Border{
+							Color:        borderColor,
+							CornerRadius: unit.Dp(1),
+							Width:        unit.Dp(2),
+						}
+
+						return margins.Layout(gtx,
+							func(gtx layout.Context) layout.Dimensions {
+								return border.Layout(gtx,
+									func(gtx layout.Context) layout.Dimensions {
+										return padding.Layout(gtx, txt.Layout)
+									},
+								)
+							},
+						)
+					},
+				),
+				layout.Rigid(
+					func(gtx layout.Context) layout.Dimensions {
+						txt := material.Editor(th, &userName, "Username")
+						userName.SingleLine = true
+						userName.Submit = true
+
+						margins := layout.UniformInset(unit.Dp(10))
+						padding := layout.UniformInset(inputPadding)
+
+						border := widget.Border{
+							Color:        borderColor,
+							CornerRadius: unit.Dp(1),
+							Width:        unit.Dp(2),
+						}
+
+						return margins.Layout(gtx,
+							func(gtx layout.Context) layout.Dimensions {
+								return border.Layout(gtx,
+									func(gtx layout.Context) layout.Dimensions {
+										return padding.Layout(gtx, txt.Layout)
+									},
+								)
+							},
+						)
+					},
+				),
+				layout.Rigid(
+					func(gtx layout.Context) layout.Dimensions {
+						txt := material.Editor(th, &password, "Password")
+						password.SingleLine = true
+						password.Submit = true
+
+						margins := layout.UniformInset(unit.Dp(10))
+						padding := layout.UniformInset(inputPadding)
+
+						border := widget.Border{
+							Color:        borderColor,
+							CornerRadius: unit.Dp(1),
+							Width:        unit.Dp(2),
+						}
+
+						return margins.Layout(gtx,
+							func(gtx layout.Context) layout.Dimensions {
+								return border.Layout(gtx,
+									func(gtx layout.Context) layout.Dimensions {
+										return padding.Layout(gtx, txt.Layout)
+									},
+								)
+							},
+						)
+					},
+				),
+				layout.Rigid(
+					func(gtx layout.Context) layout.Dimensions {
+						margins := layout.UniformInset(unit.Dp(10))
+						btn := material.Button(th, &addBtn, "+ Add")
+						return margins.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+							return btn.Layout(gtx)
+						})
 					},
 				),
 			)

@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"sort"
 	"strings"
 
 	"github.com/Queueue0/qpass/internal/crypto"
@@ -80,6 +81,24 @@ func (m *PasswordModel) Insert(u User, serviceName, username, password string) (
 	return int(id), nil
 }
 
+func (m *PasswordModel) Get(id int, u User) (Password, error) {
+	stmt := `SELECT id, userID, service, username, password FROM passwords WHERE id = ?`
+	r := m.DB.QueryRow(stmt, id)
+
+	p := Password{}
+	err := r.Scan(&p.ID, &p.UserID, &p.eServiceName, &p.eUsername, &p.ePassword)
+	if err != nil {
+		return Password{}, err
+	}
+
+	err = p.decrypt(u)
+	if err != nil {
+		return Password{}, err
+	}
+
+	return p, nil
+}
+
 func (m *PasswordModel) GetAllForUser(u User) (PasswordList, error) {
 	stmt := `SELECT id, userID, service, username, password FROM passwords WHERE userID = ?`
 	rows, err := m.DB.Query(stmt, u.ID)
@@ -87,22 +106,23 @@ func (m *PasswordModel) GetAllForUser(u User) (PasswordList, error) {
 		return []Password{}, err
 	}
 
-	pws := []Password{}
+	pws := PasswordList{}
 	for rows.Next() {
 		pw := Password{}
 		err := rows.Scan(&pw.ID, &pw.UserID, &pw.eServiceName, &pw.eUsername, &pw.ePassword)
 		if err != nil {
-			return []Password{}, err
+			return PasswordList{}, err
 		}
 
 		err = pw.decrypt(u)
 		if err != nil {
-			return []Password{}, err
+			return PasswordList{}, err
 		}
 
 		pws = append(pws, pw)
 	}
 
+	pws.Sort()
 	return pws, nil
 }
 
@@ -124,4 +144,10 @@ func (pl PasswordList) Search(searchTerm string) PasswordList {
 		}
 	}
 	return res
+}
+
+func (pl PasswordList) Sort() {
+	sort.Slice(pl, func(i, j int) bool {
+		return pl[i].ServiceName < pl[j].ServiceName
+	})
 }
