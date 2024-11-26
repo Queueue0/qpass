@@ -34,3 +34,7 @@ func (v *Validator) CheckField(ok bool, key, message string) {
 func NotBlank(s string) bool {
 	return strings.TrimSpace(s) != ""
 }
+
+func Matches(s1 string, s2 string) bool {
+	return s1 == s2
+}
