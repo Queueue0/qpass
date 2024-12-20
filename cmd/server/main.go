@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
@@ -10,25 +9,16 @@ import (
 )
 
 func main() {
-	cert, err := tls.LoadX509KeyPair("tls/cert.pem", "tls/key.pem")
+	srv, err := net.Listen("tcp", "127.0.0.1:8000")
 	if err != nil {
-		log.Fatal(err)
+		panic(err)
 	}
-
-	config := tls.Config{
-		Certificates: []tls.Certificate{cert},
-	}
-
-	srv, err := tls.Listen("tcp", "localhost:1717", &config)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	defer srv.Close()
+
 	for {
 		c, err := srv.Accept()
 		if err != nil {
-			log.Fatal(err)
+			panic(err)
 		}
 
 		go respond(c)
@@ -36,6 +26,7 @@ func main() {
 }
 
 func respond(c net.Conn) {
+	defer c.Close()
 	buf := make([]byte, 1024)
 	_, err := c.Read(buf)
 	if err != nil {
