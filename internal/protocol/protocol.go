@@ -5,23 +5,36 @@ import (
 	"net"
 )
 
-func Read(c net.Conn) []byte {
-	l := make([]byte, 2)
-	i, _ := c.Read(l)
+func Read(c net.Conn) Packet {
+	t := make([]byte, 1)
+	c.Read(t)
 
-	lm := binary.BigEndian.Uint16(l[:i])
+	switch t[0] {
+	case PING:
+		return NewPing()
+	case PONG:
+		return NewPong()
+	}
 
-	b := make([]byte, lm)
-	e, _ := c.Read(b)
+	// TODO: process other types of packets
 
-	return b[:e]
+	// l := make([]byte, 2)
+	// i, _ := c.Read(l)
+
+	// lm := binary.BigEndian.Uint16(l[:i])
+
+	// b := make([]byte, lm)
+	// e, _ := c.Read(b)
+
+	return NewPing()
 }
 
-func Write(t byte, m []byte, c net.Conn) {
-	p := make([]byte, 1)
-	p[0] = t
+func Write(c net.Conn, p Packet) {
+	pb := make([]byte, 1)
+	pb[0] = p.Type()
 	l := make([]byte, 2)
+	m := p.Data()
 	binary.BigEndian.PutUint16(l, uint16(len(m)))
-	p = append(p, l...)
-	c.Write(append(p, m...))
+	pb = append(pb, l...)
+	c.Write(append(pb, m...))
 }

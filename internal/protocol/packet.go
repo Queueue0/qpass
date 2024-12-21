@@ -31,6 +31,10 @@ func (p PingPong) Data() []byte {
 	return []byte{}
 }
 
+func (p PingPong) ToBytes() []byte {
+	return []byte{p.ptype, 0, 0}
+}
+
 func NewPing() PingPong {
 	return PingPong{PING}
 }

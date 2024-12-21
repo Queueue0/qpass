@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
 
 	"gioui.org/app"
 	"gioui.org/unit"
 	"github.com/Queueue0/qpass/internal/models"
+	"github.com/Queueue0/qpass/internal/protocol"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -50,6 +52,21 @@ func main() {
 	a := Application{
 		UserModel: &um,
 		PasswordModel: &pm,
+	}
+
+	c, err := net.Dial("tcp", "127.0.0.1:8000")
+	if err != nil {
+		log.Println("Failed to connect to server")
+	}
+	defer c.Close()
+
+	protocol.Write(c, protocol.NewPing())
+	p := protocol.Read(c)
+
+	if p.Type() == protocol.PONG {
+		log.Println("PONG")
+	} else {
+		log.Println("Ping failed")
 	}
 
 	go func() {

@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net"
-	"slices"
-	"strings"
+
+	"github.com/Queueue0/qpass/internal/protocol"
 )
 
 func main() {
@@ -27,20 +26,10 @@ func main() {
 
 func respond(c net.Conn) {
 	defer c.Close()
-	buf := make([]byte, 1024)
-	_, err := c.Read(buf)
-	if err != nil {
-		log.Fatal(err)
-	}
+	p := protocol.Read(c)
 
-	i := slices.Index(buf, byte(0))
-	if i == -1 {
-		i = 1024
+	if p.Type() == protocol.PING {
+		log.Println("PING")
+		protocol.Write(c, protocol.NewPong())
 	}
-
-	text := strings.TrimSpace(string(buf[:i]))
-	resp := fmt.Sprintf("Request: \"%v\" Response: \"received\"\n", text)
-	log.Println(resp)
-	c.Write([]byte(resp))
-	c.Close()
 }
