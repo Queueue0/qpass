@@ -149,5 +149,19 @@ func initializeDB(db *sql.DB) error {
 		return err
 	}
 
+	logstmt := `CREATE TABLE IF NOT EXISTS log (
+		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+		change_type CHAR(4),
+		user TEXT,
+		old_name TEXT,
+		new_name TEXT,
+		old_password TEXT,
+		new_password TEXT
+	)`
+	_, err = db.Exec(logstmt)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -20,6 +20,10 @@ type UserModel struct {
 	DB *sql.DB
 }
 
+func (m *UserModel) GetDB() *sql.DB {
+	return m.DB
+}
+
 func (m *UserModel) Insert(username, password string) (int, error) {
 	salt, err := crypto.GenSalt(16)
 	if err != nil {
