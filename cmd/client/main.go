@@ -50,7 +50,7 @@ func main() {
 	}
 
 	a := Application{
-		UserModel: &um,
+		UserModel:     &um,
 		PasswordModel: &pm,
 	}
 
@@ -58,18 +58,35 @@ func main() {
 	if err != nil {
 		log.Println("Failed to connect to server")
 	}
-	defer c.Close()
 
-	protocol.Write(c, protocol.NewPing())
-	p := protocol.Read(c)
+	if c != nil {
+		defer c.Close()
+		protocol.Write(c, protocol.NewPing())
+		p := protocol.Read(c)
 
-	if p.Type() == protocol.PONG {
-		log.Println("PONG")
-	} else {
-		log.Println("Ping failed")
+		if p.Type() == protocol.PONG {
+			log.Println("PONG")
+		} else {
+			log.Println("Ping failed")
+		}
 	}
 
 	go func() {
+		if a.UserModel.Count() <= 0 {
+			created := false
+			aw := new(app.Window)
+			aw.Option(app.Title("New User"))
+			aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
+			created, err = a.newUserView(aw)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+
+			if !created {
+				os.Exit(0)
+			}
+		}
+
 		lw := new(app.Window)
 		lw.Option(app.Title("Login"))
 		lw.Option(app.Size(unit.Dp(500), unit.Dp(200)))
@@ -77,13 +94,15 @@ func main() {
 			log.Fatal(err)
 		}
 
-		if a.ActiveUser != nil {
-			w := new(app.Window)
-			w.Option(app.Title("QPass"))
-			w.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-			if err := a.mainView(w); err != nil {
-				log.Fatal(err)
-			}
+		if a.ActiveUser == nil {
+			os.Exit(0)
+		}
+
+		w := new(app.Window)
+		w.Option(app.Title("QPass"))
+		w.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
+		if err := a.mainView(w); err != nil {
+			log.Fatal(err)
 		}
 		os.Exit(0)
 	}()

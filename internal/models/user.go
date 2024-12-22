@@ -78,3 +78,10 @@ func (m *UserModel) Authenticate(username, password string) (User, error) {
 
 	return User{}, errors.New("Username or password is incorrect")
 }
+
+func (m *UserModel) Count() int {
+	row := m.DB.QueryRow("SELECT COUNT(id) FROM users")
+	var c int
+	row.Scan(&c)
+	return c
+}

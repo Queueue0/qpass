@@ -710,6 +710,7 @@ func (a *Application) newUserView(w *app.Window) (bool, error) {
 					func(gtx layout.Context) layout.Dimensions {
 						txt := material.Editor(th, &password, "Password")
 						password.SingleLine = true
+						password.Mask = '*'
 						password.Submit = true
 
 						margins := layout.UniformInset(unit.Dp(10))
@@ -759,6 +760,7 @@ func (a *Application) newUserView(w *app.Window) (bool, error) {
 					func(gtx layout.Context) layout.Dimensions {
 						txt := material.Editor(th, &confirmPassword, "Confirm Password")
 						confirmPassword.SingleLine = true
+						confirmPassword.Mask = '*'
 						confirmPassword.Submit = true
 
 						margins := layout.UniformInset(unit.Dp(10))
