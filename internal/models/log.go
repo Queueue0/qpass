@@ -9,12 +9,17 @@ type LogType string
 
 // Possible Change Types
 const (
-	AUSR LogType = "AUSR" // Add user
-	MUSR LogType = "MUSR" // Modify user
-	DUSR LogType = "DUSR" // Delete user
-	// etc, but for passwords
+	// Add user
+	AUSR LogType = "AUSR"
+	// Modify user
+	MUSR LogType = "MUSR"
+	// Delete user
+	DUSR LogType = "DUSR"
+	// Add password
 	APWD LogType = "APWD"
+	// Modify password
 	MPWD LogType = "MPWD"
+	// Delete password
 	DPWD LogType = "DPWD"
 )
 

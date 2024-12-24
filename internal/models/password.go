@@ -8,7 +8,7 @@ import (
 	"github.com/Queueue0/qpass/internal/crypto"
 )
 
-// e means encrypted
+// e = encrypted
 type Password struct {
 	ID           int
 	UserID       int
@@ -80,6 +80,21 @@ func (m *PasswordModel) Insert(u User, serviceName, username, password string) (
 	id, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
+	}
+
+	l := Log{
+		DB: m.DB,
+		Type: APWD,
+		User: u.encryptedUsername,
+		OldName: "",
+		NewName: eServiceName,
+		OldPW: "",
+		NewPW: ePassword,
+	}
+
+	err = l.Write()
+	if err != nil {
+		return int(id), LogWriteError
 	}
 
 	return int(id), nil

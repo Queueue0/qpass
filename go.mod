@@ -1,6 +1,6 @@
 module github.com/Queueue0/qpass
 
-go 1.22.4
+go 1.23.4
 
 require (
 	gioui.org v0.7.1
