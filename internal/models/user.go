@@ -48,6 +48,21 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 		return 0, err
 	}
 
+	l := Log{
+		DB:      m.DB,
+		Type:    AUSR,
+		User:    encryptedUsername,
+		OldName: "",
+		NewName: encryptedUsername,
+		OldPW:   "",
+		NewPW:   salt,
+	}
+
+	err = l.Write()
+	if err != nil {
+		return int(id), LogWriteError
+	}
+
 	return int(id), nil
 }
 
