@@ -1,8 +1,6 @@
 package main
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -10,9 +8,9 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/unit"
+	"github.com/Queueue0/qpass/internal/dbman"
 	"github.com/Queueue0/qpass/internal/models"
 	"github.com/Queueue0/qpass/internal/protocol"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type Application struct {
@@ -23,20 +21,20 @@ type Application struct {
 }
 
 func main() {
-	qpassHome, err := getQpassHome()
+	qpassHome, err := dbman.GetQpassHome()
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	dsn := fmt.Sprintf("file:%s/pwdb.sqlite?mode=rwc", qpassHome)
-	db, err := openDB(dsn)
+	db, err := dbman.OpenDB(dsn)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	defer db.Close()
 
-	err = initializeDB(db)
+	err = dbman.InitializeDB(db)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -108,60 +106,4 @@ func main() {
 	}()
 
 	app.Main()
-}
-
-func getQpassHome() (string, error) {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	qpassHome := fmt.Sprintf("%s/.qpass", homeDir)
-	if _, err := os.Stat(qpassHome); errors.Is(err, os.ErrNotExist) {
-		err := os.Mkdir(qpassHome, os.ModePerm)
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return qpassHome, nil
-}
-
-func openDB(dsn string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", dsn)
-	if err != nil {
-		return nil, err
-	}
-	if err = db.Ping(); err != nil {
-		return nil, err
-	}
-	return db, nil
-}
-
-func initializeDB(db *sql.DB) error {
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, salt TEXT)")
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS passwords (id INTEGER PRIMARY KEY, userId INT, service TEXT, username TEXT, password TEXT)")
-	if err != nil {
-		return err
-	}
-
-	logstmt := `CREATE TABLE IF NOT EXISTS log (
-		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
-		change_type CHAR(4),
-		user TEXT,
-		old_name TEXT,
-		new_name TEXT,
-		old_password TEXT,
-		new_password TEXT
-	)`
-	_, err = db.Exec(logstmt)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
