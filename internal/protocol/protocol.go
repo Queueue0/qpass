@@ -1,32 +1,31 @@
 package protocol
 
 import (
+	// "bufio"
 	"encoding/binary"
 	"net"
 )
 
 func Read(c net.Conn) Packet {
-	l := make([]byte, 2)
-	i, _ := c.Read(l)
-
-	lm := binary.BigEndian.Uint16(l[:i])
-
-	b := make([]byte, lm)
-	e, _ := c.Read(b)
-
-	switch b[0] {
-	case PING:
-		return NewPing()
-	case PONG:
-		return NewPong()
-	case SYNC:
-		lm := binary.BigEndian.Uint16(b[1:i])
-		
-		d := make([]byte, )
-	}
+	//	br := bufio.NewReader(c)
+	//
+	//	lm := binary.BigEndian.Uint16(l[:i])
+	//
+	//	b := make([]byte, lm)
+	//	e, _ := c.Read(b)
+	//
+	//	switch b[0] {
+	//	case PING:
+	//		return NewPing()
+	//	case PONG:
+	//		return NewPong()
+	//	case SYNC:
+	//		lm := binary.BigEndian.Uint16(b[1:i])
+	//
+	//		d := make([]byte, )
+	//	}
 
 	// TODO: process other types of packets
-
 
 	return NewPong()
 }
