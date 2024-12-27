@@ -52,7 +52,7 @@ func main() {
 		PasswordModel: &pm,
 	}
 
-	c, err := net.Dial("tcp", "127.0.0.1:8000")
+	c, err := net.Dial("tcp", "127.0.0.1:10448")
 	if err != nil {
 		log.Println("Failed to connect to server")
 	}
