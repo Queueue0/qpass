@@ -20,10 +20,6 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-func (m *UserModel) GetDB() *sql.DB {
-	return m.DB
-}
-
 func (m *UserModel) Insert(username, password string) (int, error) {
 	salt, err := crypto.GenSalt(16)
 	if err != nil {
@@ -49,7 +45,6 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 	}
 
 	l := Log{
-		DB:      m.DB,
 		Type:    AUSR,
 		User:    encryptedUsername,
 		OldName: "",
@@ -58,7 +53,7 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 		NewPW:   salt,
 	}
 
-	err = l.Write()
+	err = l.Write(m.DB)
 	if err != nil {
 		return int(id), LogWriteError
 	}

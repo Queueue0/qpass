@@ -51,10 +51,6 @@ type PasswordModel struct {
 	DB *sql.DB
 }
 
-func (m *PasswordModel) GetDB() *sql.DB {
-	return m.DB
-}
-
 func (m *PasswordModel) Insert(u User, serviceName, username, password string) (int, error) {
 	eServiceName, err := crypto.Encrypt(serviceName, u.Key)
 	if err != nil {
@@ -83,7 +79,6 @@ func (m *PasswordModel) Insert(u User, serviceName, username, password string) (
 	}
 
 	l := Log{
-		DB: m.DB,
 		Type: APWD,
 		User: u.encryptedUsername,
 		OldName: "",
@@ -92,7 +87,7 @@ func (m *PasswordModel) Insert(u User, serviceName, username, password string) (
 		NewPW: ePassword,
 	}
 
-	err = l.Write()
+	err = l.Write(m.DB)
 	if err != nil {
 		return int(id), LogWriteError
 	}
