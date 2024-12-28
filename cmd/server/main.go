@@ -53,6 +53,8 @@ func main() {
 	}
 	defer srv.Close()
 
+	log.Println(fmt.Sprintf("Server started on %s", srv.Addr().String()))
+
 	for {
 		c, err := srv.Accept()
 		if err != nil {
@@ -65,11 +67,18 @@ func main() {
 
 func (app *Application) respond(c net.Conn) {
 	defer c.Close()
-	p := protocol.Read(c)
+	var p protocol.Payload
+	_, err := p.ReadFrom(c)
+	if err != nil {
+		return
+	}
+
+	log.Println(p.TypeString())
 
 	switch p.Type() {
 	case protocol.PING:
-		protocol.Write(c, protocol.NewPong())
+		pong := protocol.NewPong()
+		pong.WriteTo(c)
 	case protocol.SYNC:
 		app.sync(p)
 	}

@@ -59,10 +59,12 @@ func main() {
 
 	if c != nil {
 		defer c.Close()
-		protocol.Write(c, protocol.NewPing())
-		p := protocol.Read(c)
+		ping := protocol.NewPing()
+		ping.WriteTo(c)
+		var response protocol.Payload
+		response.ReadFrom(c)
 
-		if p.Type() == protocol.PONG {
+		if response.Type() == protocol.PONG {
 			log.Println("PONG")
 		} else {
 			log.Println("Ping failed")
