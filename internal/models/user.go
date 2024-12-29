@@ -16,6 +16,10 @@ type User struct {
 	Key               []byte
 }
 
+func (u User) EUsername() string {
+	return u.encryptedUsername
+}
+
 type UserModel struct {
 	DB *sql.DB
 }

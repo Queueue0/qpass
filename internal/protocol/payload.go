@@ -10,6 +10,8 @@ const (
 	PING byte = iota
 	PONG
 	SYNC
+	SUSR
+	SPWD
 	SUCC
 	FAIL
 

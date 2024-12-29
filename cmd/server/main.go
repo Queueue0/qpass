@@ -29,7 +29,7 @@ func main() {
 
 	defer db.Close()
 
-	err = dbman.InitializeDB(db)
+	err = dbman.InitializeDB(db, false)
 	if err != nil {
 		log.Fatal(err)
 	}

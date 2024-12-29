@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"gioui.org/app"
 	"gioui.org/unit"
@@ -18,6 +19,7 @@ type Application struct {
 	ActiveUser    *models.User
 	PasswordModel *models.PasswordModel
 	Passwords     models.PasswordList
+	Logs          *models.LogModel
 }
 
 func main() {
@@ -34,7 +36,7 @@ func main() {
 
 	defer db.Close()
 
-	err = dbman.InitializeDB(db)
+	err = dbman.InitializeDB(db, true)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -47,9 +49,14 @@ func main() {
 		DB: db,
 	}
 
+	lm := models.LogModel{
+		DB: db,
+	}
+
 	a := Application{
 		UserModel:     &um,
 		PasswordModel: &pm,
+		Logs:          &lm,
 	}
 
 	c, err := net.Dial("tcp", "127.0.0.1:10448")
@@ -68,6 +75,31 @@ func main() {
 			log.Println("PONG")
 		} else {
 			log.Println("Ping failed")
+		}
+
+		nc, err := net.Dial("tcp", "127.0.0.1:10448")
+		if err != nil {
+			log.Println(err.Error())
+		} else {
+			defer nc.Close()
+			lastSync := time.Now().Add((-30*24) * time.Hour)
+			ls, err := a.Logs.GetAllUserSince(lastSync)
+			if err != nil {
+				log.Println(err.Error())
+			} else {
+				sd := protocol.SyncData{LastSync: lastSync, Logs: ls}
+				data, err := sd.Encode()
+				if err != nil {
+					log.Println(err.Error())
+				} else {
+					sync, err := protocol.NewPayload(protocol.SYNC, data)
+					if err != nil {
+						log.Println(err.Error())
+					} else {
+						sync.WriteTo(nc)
+					}
+				}
+			}
 		}
 	}
 

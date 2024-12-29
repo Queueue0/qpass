@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -20,8 +21,8 @@ func OpenDB(dsn string) (*sql.DB, error) {
 	return db, nil
 }
 
-func InitializeDB(db *sql.DB) error {
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, salt TEXT)")
+func InitializeDB(db *sql.DB, client bool) error {
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, salt TEXT, last_sync DATETIME)")
 	if err != nil {
 		return err
 	}
@@ -43,6 +44,28 @@ func InitializeDB(db *sql.DB) error {
 	_, err = db.Exec(logstmt)
 	if err != nil {
 		return err
+	}
+
+	if client {
+		_, err = db.Exec("CREATE TABLE IF NOT EXISTS last_user_sync (timestamp DATETIME)")
+		if err != nil {
+			return err
+		}
+
+		var c int
+		r := db.QueryRow("SELECT COUNT(timestamp) FROM last_user_sync")
+		err = r.Scan(&c)
+		if err != nil {
+			return err
+		}
+
+		if c <= 0 {
+			t := time.Time{}
+			_, err = db.Exec("INSERT INTO last_user_sync (timestamp) VALUES (?)", t)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
