@@ -67,19 +67,26 @@ func main() {
 
 func (app *Application) respond(c net.Conn) {
 	defer c.Close()
-	var p protocol.Payload
-	_, err := p.ReadFrom(c)
-	if err != nil {
-		return
-	}
 
-	log.Println(p.TypeString())
+connLoop:
+	for {
+		var p protocol.Payload
+		_, err := p.ReadFrom(c)
+		if err != nil {
+			return
+		}
 
-	switch p.Type() {
-	case protocol.PING:
-		pong := protocol.NewPong()
-		pong.WriteTo(c)
-	case protocol.SYNC:
-		app.sync(p)
+		log.Println(p.TypeString())
+
+		switch p.Type() {
+		case protocol.PING:
+			protocol.NewPong().WriteTo(c)
+		case protocol.SYNC:
+			app.sync(p)
+		case protocol.SUSR:
+			app.userSync(p, c)
+		case protocol.SUCC:
+			break connLoop
+		}
 	}
 }

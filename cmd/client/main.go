@@ -5,7 +5,6 @@ import (
 	"log"
 	"net"
 	"os"
-	"time"
 
 	"gioui.org/app"
 	"gioui.org/unit"
@@ -20,6 +19,7 @@ type Application struct {
 	PasswordModel *models.PasswordModel
 	Passwords     models.PasswordList
 	Logs          *models.LogModel
+	ServerAddress string
 }
 
 func main() {
@@ -57,6 +57,7 @@ func main() {
 		UserModel:     &um,
 		PasswordModel: &pm,
 		Logs:          &lm,
+		ServerAddress: "127.0.0.1:10448",
 	}
 
 	c, err := net.Dial("tcp", "127.0.0.1:10448")
@@ -76,32 +77,11 @@ func main() {
 		} else {
 			log.Println("Ping failed")
 		}
-
-		nc, err := net.Dial("tcp", "127.0.0.1:10448")
-		if err != nil {
-			log.Println(err.Error())
-		} else {
-			defer nc.Close()
-			lastSync := time.Now().Add((-30*24) * time.Hour)
-			ls, err := a.Logs.GetAllUserSince(lastSync)
-			if err != nil {
-				log.Println(err.Error())
-			} else {
-				sd := protocol.SyncData{LastSync: lastSync, Logs: ls}
-				data, err := sd.Encode()
-				if err != nil {
-					log.Println(err.Error())
-				} else {
-					sync, err := protocol.NewPayload(protocol.SYNC, data)
-					if err != nil {
-						log.Println(err.Error())
-					} else {
-						sync.WriteTo(nc)
-					}
-				}
-			}
-		}
+		succ := protocol.NewSucc()
+		succ.WriteTo(c)
 	}
+
+	a.syncUsers()
 
 	go func() {
 		if a.UserModel.Count() <= 0 {

@@ -39,6 +39,10 @@ func (m *Payload) TypeString() string {
 		return "PONG"
 	case SYNC:
 		return "SYNC"
+	case SUSR:
+		return "SUSR"
+	case SPWD:
+		return "SPWD"
 	case SUCC:
 		return "SUCC"
 	case FAIL:
@@ -111,6 +115,14 @@ func NewPing() *Payload {
 
 func NewPong() *Payload {
 	return &Payload{PONG, []byte{}}
+}
+
+func NewSucc() *Payload {
+	return &Payload{SUCC, []byte{}}
+}
+
+func NewFail(message string) *Payload {
+	return &Payload{FAIL, []byte(message)}
 }
 
 func NewPayload(payloadType byte, bytes []byte) (*Payload, error) {

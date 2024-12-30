@@ -152,3 +152,20 @@ func (m *LogModel) GetAllPasswordSince(t time.Time, u string) ([]Log, error) {
 
 	return ls, nil
 }
+
+func (m *LogModel) GetLastSync() (time.Time, error) {
+	stmt := `SELECT timestamp FROM last_user_sync`
+
+	row := m.DB.QueryRow(stmt)
+	var t time.Time
+	err := row.Scan(&t)
+	
+	return t, err
+}
+
+func (m *LogModel) SetLastSync(t time.Time) error {
+	stmt := `UPDATE last_user_sync SET timestamp=?`
+
+	_, err := m.DB.Exec(stmt, t)
+	return err
+}
