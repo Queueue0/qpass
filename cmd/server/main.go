@@ -11,8 +11,8 @@ import (
 )
 
 type Application struct {
-	UserModel     *models.UserModel
-	PasswordModel *models.PasswordModel
+	users     *models.UserModel
+	passwords *models.PasswordModel
 }
 
 func main() {
@@ -43,8 +43,8 @@ func main() {
 	}
 
 	a := Application{
-		UserModel:     &um,
-		PasswordModel: &pm,
+		users:     &um,
+		passwords: &pm,
 	}
 
 	srv, err := net.Listen("tcp", "127.0.0.1:10448")
