@@ -8,6 +8,11 @@ import (
 	"github.com/Queueue0/qpass/internal/models"
 )
 
+type PayloadData interface {
+	Encode() ([]byte, error)
+	Decode([]byte)
+}
+
 type SyncData struct {
 	LastSync time.Time
 	Logs     []models.Log
