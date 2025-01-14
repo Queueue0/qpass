@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"image/color"
+	"io"
 	"sort"
 	"strings"
 
 	"gioui.org/app"
 	"gioui.org/font"
+	"gioui.org/io/clipboard"
 	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
@@ -16,7 +18,6 @@ import (
 	"gioui.org/widget/material"
 	"github.com/Queueue0/qpass/internal/models"
 	"github.com/Queueue0/qpass/internal/validator"
-	"github.com/tiagomelo/go-clipboard/clipboard"
 )
 
 var borderColor = color.NRGBA{R: 100, G: 100, B: 100, A: 200}
@@ -29,14 +30,6 @@ type gPassword struct {
 	Shown       bool
 	ShowBtn     *widget.Clickable
 	CopyBtn     *widget.Clickable
-}
-
-func (p *gPassword) copy() {
-	c := clipboard.New()
-	err := c.CopyText(p.Password)
-	if err != nil {
-		panic(err)
-	}
 }
 
 func (p *gPassword) toggleShow() {
@@ -104,7 +97,7 @@ func (a *Application) mainView(w *app.Window) error {
 			for i := range pws {
 				p := pws[i]
 				if p.CopyBtn.Clicked(gtx) {
-					p.copy()
+					gtx.Execute(clipboard.WriteCmd{Type: "application/text", Data: io.NopCloser(strings.NewReader(p.Password))})
 				}
 
 				if p.ShowBtn.Clicked(gtx) {
