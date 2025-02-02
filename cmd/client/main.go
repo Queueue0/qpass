@@ -8,6 +8,7 @@ import (
 
 	"gioui.org/app"
 	"gioui.org/unit"
+	"github.com/Queueue0/qpass/internal/crypto"
 	"github.com/Queueue0/qpass/internal/dbman"
 	"github.com/Queueue0/qpass/internal/models"
 	"github.com/Queueue0/qpass/internal/protocol"
@@ -66,11 +67,16 @@ func main() {
 	}
 
 	if c != nil {
-		defer c.Close()
+		sc, err := crypto.NewClientConn(c)
+		if err != nil {
+			panic(err)
+		}
+		// Closing sc closes c
+		defer sc.Close()
 		ping := protocol.NewPing()
-		ping.WriteTo(c)
+		ping.WriteTo(sc)
 		var response protocol.Payload
-		response.ReadFrom(c)
+		response.ReadFrom(sc)
 
 		if response.Type() == protocol.PONG {
 			log.Println("PONG")
@@ -78,7 +84,7 @@ func main() {
 			log.Println("Ping failed")
 		}
 		succ := protocol.NewSucc()
-		succ.WriteTo(c)
+		succ.WriteTo(sc)
 	}
 
 	a.syncUsers()
