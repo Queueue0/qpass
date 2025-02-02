@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/Queueue0/qpass/internal/crypto"
 	"github.com/Queueue0/qpass/internal/dbman"
 	"github.com/Queueue0/qpass/internal/models"
 	"github.com/Queueue0/qpass/internal/protocol"
@@ -61,8 +62,17 @@ func main() {
 			panic(err)
 		}
 
-		go a.respond(c)
+		go a.handle(c)
 	}
+}
+
+func (app *Application) handle(c net.Conn) {
+	sc, err := crypto.NewServerConn(c)
+	if err != nil {
+		panic(err)
+	}
+
+	app.respond(sc)
 }
 
 func (app *Application) respond(c net.Conn) {
