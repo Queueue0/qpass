@@ -60,7 +60,7 @@ func main() {
 		ServerAddress: "127.0.0.1:10448",
 	}
 
-	sc, err := crypto.NewClientFromAddr(a.ServerAddress)
+	sc, err := crypto.Dial(a.ServerAddress)
 	if err != nil {
 		log.Println("Failed to connect to server", err.Error())
 	}

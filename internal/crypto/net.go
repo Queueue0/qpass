@@ -62,7 +62,7 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 	return &secureConn{c, ss}, nil
 }
 
-func NewClientFromAddr(addr string) (*secureConn, error) {
+func Dial(addr string) (*secureConn, error) {
 	c, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err

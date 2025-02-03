@@ -42,7 +42,7 @@ func (app *Application) syncUsers() error {
 		return err
 	}
 
-	c, err := crypto.NewClientFromAddr(app.ServerAddress)
+	c, err := crypto.Dial(app.ServerAddress)
 	if err != nil {
 		return err
 	}
