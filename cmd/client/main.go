@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"net"
 	"os"
 
 	"gioui.org/app"
@@ -61,16 +60,12 @@ func main() {
 		ServerAddress: "127.0.0.1:10448",
 	}
 
-	c, err := net.Dial("tcp", "127.0.0.1:10448")
+	sc, err := crypto.NewClientFromAddr(a.ServerAddress)
 	if err != nil {
-		log.Println("Failed to connect to server")
+		log.Println("Failed to connect to server", err.Error())
 	}
 
-	if c != nil {
-		sc, err := crypto.NewClientConn(c)
-		if err != nil {
-			panic(err)
-		}
+	if sc != nil {
 		// Closing sc closes c
 		defer sc.Close()
 		ping := protocol.NewPing()
