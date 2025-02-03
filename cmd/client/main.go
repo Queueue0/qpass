@@ -74,9 +74,15 @@ func main() {
 		// Closing sc closes c
 		defer sc.Close()
 		ping := protocol.NewPing()
-		ping.WriteTo(sc)
+		_, err = ping.WriteTo(sc)
+		if err != nil {
+			log.Println("Write error", err.Error())
+		}
 		var response protocol.Payload
-		response.ReadFrom(sc)
+		_, err = response.ReadFrom(sc)
+		if err != nil {
+			log.Println("Read error", err.Error())
+		}
 
 		if response.Type() == protocol.PONG {
 			log.Println("PONG")

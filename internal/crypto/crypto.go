@@ -9,18 +9,11 @@ import (
 )
 
 func Encrypt(s string, key []byte) (string, error) {
-	aead, err := chacha.NewX(key)
+	sbytes := []byte(s)
+	encrypted, err := EncryptBytes(sbytes, key)
 	if err != nil {
 		return "", err
 	}
-
-	sbytes := []byte(s)
-	nonce := make([]byte, aead.NonceSize(), aead.NonceSize()+len(sbytes)+aead.Overhead())
-	if _, err := rand.Read(nonce); err != nil {
-		return "", err
-	}
-
-	encrypted := aead.Seal(nonce, nonce, sbytes, nil)
 
 	encStr := base64.RawStdEncoding.EncodeToString(encrypted)
 
@@ -33,23 +26,48 @@ func Decrypt(s string, key []byte) (string, error) {
 		return "", err
 	}
 
-	aead, err := chacha.NewX(key)
+	unsealed, err := DecryptBytes(b, key)
 	if err != nil {
 		return "", err
+	}
+
+	return string(unsealed), nil
+}
+
+func EncryptBytes(b []byte, key []byte) ([]byte, error) {
+	aead, err := chacha.NewX(key)
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, aead.NonceSize(), aead.NonceSize()+len(b)+aead.Overhead())
+	if _, err := rand.Read(nonce); err != nil {
+		return nil, err
+	}
+
+	sealed := aead.Seal(nonce, nonce, b, nil)
+
+	return sealed, nil
+}
+
+func DecryptBytes(b []byte, key []byte) ([]byte, error) {
+	aead, err := chacha.NewX(key)
+	if err != nil {
+		return nil, err
 	}
 
 	nonce, enc := b[:aead.NonceSize()], b[aead.NonceSize():]
 
-	text, err := aead.Open(nil, nonce, enc, nil)
+	unsealed, err := aead.Open(nil, nonce, enc, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(text), nil
+	return unsealed, nil
 }
 
 func GetKey(password, salt string) []byte {
-	key := argon2.IDKey([]byte(password), []byte(salt), 3, 64 * 1024, 2, 32)
+	key := argon2.IDKey([]byte(password), []byte(salt), 3, 64*1024, 2, 32)
 	return key
 }
 

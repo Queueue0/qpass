@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/Queueue0/qpass/internal/crypto"
 	"github.com/Queueue0/qpass/internal/protocol"
 )
 
@@ -41,7 +42,7 @@ func (app *Application) syncUsers() error {
 		return err
 	}
 
-	c, err := net.Dial("tcp", app.ServerAddress)
+	c, err := crypto.NewClientFromAddr(app.ServerAddress)
 	if err != nil {
 		return err
 	}

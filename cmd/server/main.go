@@ -67,9 +67,11 @@ func main() {
 }
 
 func (app *Application) handle(c net.Conn) {
+	log.Println("Received connection", c.RemoteAddr().String())
 	sc, err := crypto.NewServerConn(c)
 	if err != nil {
-		panic(err)
+		log.Println(err.Error())
+		return
 	}
 
 	app.respond(sc)
@@ -83,6 +85,7 @@ connLoop:
 		var p protocol.Payload
 		_, err := p.ReadFrom(c)
 		if err != nil {
+			log.Println(err.Error())
 			return
 		}
 
