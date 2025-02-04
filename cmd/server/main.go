@@ -14,6 +14,7 @@ import (
 type Application struct {
 	users     *models.UserModel
 	passwords *models.PasswordModel
+	homeDir   string
 }
 
 func main() {
@@ -35,6 +36,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	if !haveKeys(qpassHome) {
+		err = genKeyPair(qpassHome)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
 	um := models.UserModel{
 		DB: db,
 	}
@@ -46,6 +54,7 @@ func main() {
 	a := Application{
 		users:     &um,
 		passwords: &pm,
+		homeDir:   qpassHome,
 	}
 
 	srv, err := net.Listen("tcp", "127.0.0.1:10448")
@@ -68,7 +77,13 @@ func main() {
 
 func (app *Application) handle(c net.Conn) {
 	log.Println("Received connection", c.RemoteAddr().String())
-	sc, err := crypto.NewServerConn(c)
+	kp, err := getKeyPair(app.homeDir)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	sc, err := crypto.NewServerConn(c, kp.key, kp.pubKey)
 	if err != nil {
 		log.Println(err.Error())
 		return

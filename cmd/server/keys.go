@@ -14,7 +14,20 @@ const (
 )
 
 func haveKeys(dir string) bool {
-	return false
+	_, err := os.Stat(dir+"/"+filename+".rsa")
+	// If there's any error, assume the files don't exist
+	// If this causes problems, the plan is to refactor to look more like:
+	// https://stackoverflow.com/a/12527546
+	if err != nil {
+		return false
+	}
+
+	_, err = os.Stat(dir+"/"+filename+".rsa.pub")
+	if err != nil {
+		return false
+	}
+
+	return true
 }
 
 func genKeyPair(dir string) error {
@@ -52,6 +65,33 @@ func genKeyPair(dir string) error {
 	return nil
 }
 
-func getKeyPair(dir string) (rsa.PrivateKey, rsa.PublicKey) {
-	return rsa.PrivateKey{}, rsa.PublicKey{}
+type keyPair struct {
+	key *rsa.PrivateKey
+	pubKey *rsa.PublicKey
+}
+
+func getKeyPair(dir string) (*keyPair, error) {
+	privBytes, err := os.ReadFile(dir+"/"+filename+".rsa")
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(privBytes)
+	key, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	pubBytes, err := os.ReadFile(dir+"/"+filename+".rsa.pub")
+	if err != nil {
+		return nil, err
+	}
+
+	pBlock, _ := pem.Decode(pubBytes)
+	pubKey, err := x509.ParsePKCS1PublicKey(pBlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	
+	return &keyPair{key, pubKey}, nil
 }
