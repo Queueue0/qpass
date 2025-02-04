@@ -71,13 +71,13 @@ func InitializeDB(db *sql.DB, client bool) error {
 	return nil
 }
 
-func GetQpassHome() (string, error) {
+func getHome(dirname string) (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
 
-	qpassHome := fmt.Sprintf("%s/.qpass", homeDir)
+	qpassHome := fmt.Sprintf("%s/%s", homeDir, dirname)
 	if _, err := os.Stat(qpassHome); errors.Is(err, os.ErrNotExist) {
 		err := os.Mkdir(qpassHome, os.ModePerm)
 		if err != nil {
@@ -86,4 +86,12 @@ func GetQpassHome() (string, error) {
 	}
 
 	return qpassHome, nil
+}
+
+func GetQpassHome() (string, error) {
+	return getHome(".qpass")
+}
+
+func GetQpassServerHome() (string, error) {
+	return getHome(".qpass_server")
 }

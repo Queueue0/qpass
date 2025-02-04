@@ -17,7 +17,7 @@ type Application struct {
 }
 
 func main() {
-	qpassHome, err := dbman.GetQpassHome()
+	qpassHome, err := dbman.GetQpassServerHome()
 	if err != nil {
 		log.Fatal(err)
 	}
