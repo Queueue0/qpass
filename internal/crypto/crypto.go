@@ -10,7 +10,7 @@ import (
 
 func Encrypt(s string, key []byte) (string, error) {
 	sbytes := []byte(s)
-	encrypted, err := EncryptBytes(sbytes, key)
+	encrypted, err := encryptBytes(sbytes, key, nil)
 	if err != nil {
 		return "", err
 	}
@@ -26,7 +26,7 @@ func Decrypt(s string, key []byte) (string, error) {
 		return "", err
 	}
 
-	unsealed, err := DecryptBytes(b, key)
+	unsealed, err := decryptBytes(b, key, nil)
 	if err != nil {
 		return "", err
 	}
@@ -34,31 +34,31 @@ func Decrypt(s string, key []byte) (string, error) {
 	return string(unsealed), nil
 }
 
-func EncryptBytes(b []byte, key []byte) ([]byte, error) {
+func encryptBytes(plaintext, key, additionalData []byte) ([]byte, error) {
 	aead, err := chacha.NewX(key)
 	if err != nil {
 		return nil, err
 	}
 
-	nonce := make([]byte, aead.NonceSize(), aead.NonceSize()+len(b)+aead.Overhead())
+	nonce := make([]byte, aead.NonceSize(), aead.NonceSize()+len(plaintext)+aead.Overhead())
 	if _, err := rand.Read(nonce); err != nil {
 		return nil, err
 	}
 
-	sealed := aead.Seal(nonce, nonce, b, nil)
+	sealed := aead.Seal(nonce, nonce, plaintext, additionalData)
 
 	return sealed, nil
 }
 
-func DecryptBytes(b []byte, key []byte) ([]byte, error) {
+func decryptBytes(cyphertext, key, additionalData []byte) ([]byte, error) {
 	aead, err := chacha.NewX(key)
 	if err != nil {
 		return nil, err
 	}
 
-	nonce, enc := b[:aead.NonceSize()], b[aead.NonceSize():]
+	nonce, enc := cyphertext[:aead.NonceSize()], cyphertext[aead.NonceSize():]
 
-	unsealed, err := aead.Open(nil, nonce, enc, nil)
+	unsealed, err := aead.Open(nil, nonce, enc, additionalData)
 	if err != nil {
 		return nil, err
 	}
