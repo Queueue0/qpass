@@ -6,6 +6,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
 	"slices"
@@ -19,7 +20,7 @@ func genSharedKey(b []byte) []byte {
 }
 
 const (
-	pubKeySize = 32
+	pubKeySize    = 32
 	rsaKeyByteLen = 2
 )
 
@@ -77,7 +78,24 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 		return nil, err
 	}
 
-	fmt.Println(rsaKey)
+	knownHosts, err := getKnownHosts()
+	if err != nil {
+		c.Close()
+		return nil, err
+	}
+
+	knownKey, ok := knownHosts[c.RemoteAddr().String()]
+	if !ok {
+		// Add host if it doesn't exist
+		// TODO: probably add more checks for this case
+		// Example: ssh will ask if you want to trust a new server
+		addHost(c.RemoteAddr().String(), rsaKey)
+	} else {
+		// Verify that key matches the key we already have
+		if !rsaKey.Equal(knownKey) {
+			return nil, errors.New("Key does not match known key for this host")
+		}
+	}
 
 	remoteKey, err := ecdh.X25519().NewPublicKey(rkBytes)
 	if err != nil {

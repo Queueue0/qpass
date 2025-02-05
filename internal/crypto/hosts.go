@@ -19,7 +19,7 @@ func getKnownHosts() (map[string]*rsa.PublicKey, error) {
 	}
 
 	fName := home + "/known_hosts"
-	hostsFile, err := os.Open(fName)
+	hostsFile, err := os.OpenFile(fName, os.O_RDONLY|os.O_CREATE, 0600)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func addHost(addr string, key *rsa.PublicKey) error {
 	keyBytes := x509.MarshalPKCS1PublicKey(key)
 	keyString := base64.RawStdEncoding.EncodeToString(keyBytes)
 
-	f.WriteString(fmt.Sprintf("%s %s/n", addr, keyString))
+	f.WriteString(fmt.Sprintf("%s %s\n", addr, keyString))
 
 	return nil
 }
