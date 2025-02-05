@@ -11,11 +11,11 @@ type Queue[T any] struct {
 }
 
 func (q *Queue[T]) Enqueue(e T) {
+	n := &node[T]{e, nil}
 	if q.head == nil {
-		q.head = &node[T]{e, nil}
+		q.head = n
 		q.tail = q.head
 	} else {
-		n := &node[T]{e, nil}
 		q.tail.next = n
 		q.tail = n
 	}
