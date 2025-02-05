@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"crypto"
 	"crypto/ecdh"
 	"crypto/rand"
 	"crypto/rsa"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/argon2"
+	_ "golang.org/x/crypto/blake2b"
 )
 
 func genSharedKey(b []byte) []byte {
@@ -29,10 +31,8 @@ type secureConn struct {
 }
 
 /*
-	 This is currently just an ECDH key exchange
-	 TODO:
-		Server Signature
-		Server MAC
+This is currently just an ECDH key exchange
+TODO: Server MAC
 */
 func NewClientConn(c net.Conn) (*secureConn, error) {
 	privkey, err := ecdh.X25519().GenerateKey(rand.Reader)
@@ -96,6 +96,40 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 		}
 	}
 
+	sigLenBuff := make([]byte, 2)
+	_, err = c.Read(sigLenBuff)
+	if err != nil {
+		c.Close()
+		return nil, err
+	}
+
+	sigLen := binary.BigEndian.Uint16(sigLenBuff)
+
+	sig := make([]byte, sigLen)
+	_, err = c.Read(sig)
+	if err != nil {
+		c.Close()
+		return nil, err
+	}
+
+	opts := rsa.PSSOptions{
+		SaltLength: rsa.PSSSaltLengthAuto,
+		Hash:       crypto.BLAKE2b_512,
+	}
+
+	hash := opts.HashFunc().New()
+	_, err = hash.Write(slices.Concat(pubkey.Bytes(), rkBytes, rsaKeyBytes))
+	if err != nil {
+		c.Close()
+		return nil, err
+	}
+
+	err = rsa.VerifyPSS(rsaKey, crypto.BLAKE2b_512, hash.Sum(nil), sig, &opts)
+	if err != nil {
+		c.Close()
+		return nil, err
+	}
+
 	remoteKey, err := ecdh.X25519().NewPublicKey(rkBytes)
 	if err != nil {
 		c.Close()
@@ -156,7 +190,28 @@ func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*
 	rsaPubLen := make([]byte, rsaKeyByteLen)
 	binary.BigEndian.PutUint16(rsaPubLen, uint16(len(rsaPubBytes)))
 
-	_, err = c.Write(slices.Concat(pubkey.Bytes(), rsaPubLen, rsaPubBytes))
+	opts := rsa.PSSOptions{
+		SaltLength: rsa.PSSSaltLengthAuto,
+		Hash:       crypto.BLAKE2b_512,
+	}
+
+	hash := opts.HashFunc().New()
+	_, err = hash.Write(slices.Concat(remoteKey.Bytes(), pubkey.Bytes(), rsaPubBytes))
+	if err != nil {
+		c.Close()
+		return nil, err
+	}
+
+	sig, err := rsaKey.Sign(rand.Reader, hash.Sum(nil), &opts)
+	if err != nil {
+		c.Close()
+		return nil, err
+	}
+
+	sigLen := make([]byte, 2)
+	binary.BigEndian.PutUint16(sigLen, uint16(len(sig)))
+
+	_, err = c.Write(slices.Concat(pubkey.Bytes(), rsaPubLen, rsaPubBytes, sigLen, sig))
 	if err != nil {
 		c.Close()
 		return nil, err
