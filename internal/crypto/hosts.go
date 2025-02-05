@@ -4,7 +4,8 @@ import (
 	"bufio"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/pem"
+	"encoding/base64"
+	"fmt"
 	"os"
 	"strings"
 
@@ -35,13 +36,12 @@ func getKnownHosts() (map[string]*rsa.PublicKey, error) {
 			continue
 		}
 
-		block, _ := pem.Decode([]byte(keyString))
-		if block == nil {
-			// Same as above
-			continue
+		keyBytes, err := base64.RawStdEncoding.DecodeString(keyString)
+		if err != nil {
+			return nil, err
 		}
 
-		key, err := x509.ParsePKCS1PublicKey(block.Bytes)
+		key, err := x509.ParsePKCS1PublicKey(keyBytes)
 		if err != nil {
 			return nil, err
 		}
@@ -53,5 +53,23 @@ func getKnownHosts() (map[string]*rsa.PublicKey, error) {
 }
 
 func addHost(addr string, key *rsa.PublicKey) error {
+	home, err := dbman.GetQpassHome()
+	if err != nil {
+		return err
+	}
+
+	fName := home + "/known_hosts"
+	f, err := os.OpenFile(fName, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	keyBytes := x509.MarshalPKCS1PublicKey(key)
+	keyString := base64.RawStdEncoding.EncodeToString(keyBytes)
+
+	f.WriteString(fmt.Sprintf("%s %s/n", addr, keyString))
+
 	return nil
 }
