@@ -261,7 +261,7 @@ func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*
 func (s *secureConn) Read(b []byte) (int, error) {
 	n := 0
 	for s.queue.HasNext() && n < len(b) {
-		b[n] = s.queue.Pop()
+		b[n] = s.queue.Dequeue()
 		n++
 	}
 
@@ -293,7 +293,7 @@ func (s *secureConn) Read(b []byte) (int, error) {
 				b[n] = d[i]
 				n++
 			} else {
-				s.queue.Push(d[i])
+				s.queue.Enqueue(d[i])
 			}
 		}
 	}
