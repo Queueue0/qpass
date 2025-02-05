@@ -61,24 +61,18 @@ func (m *Payload) String() string {
 }
 
 func (m *Payload) WriteTo(w io.Writer) (int64, error) {
-	err := binary.Write(w, binary.BigEndian, m.payloadType)
-	if err != nil {
-		return 0, err
-	}
-	var n int64 = 1
+	bytes := []byte{m.payloadType}
+	lenBytes := make([]byte, 4)
+	binary.BigEndian.PutUint32(lenBytes, uint32(len(m.Bytes())))
+	bytes = append(bytes, lenBytes...)
+	bytes = append(bytes, m.Bytes()...)
 
-	err = binary.Write(w, binary.BigEndian, uint32(len(m.bytes)))
+	n, err := w.Write(bytes)
 	if err != nil {
-		return n, err
-	}
-	n += 4
-
-	b, err := w.Write(m.bytes)
-	if err != nil {
-		return n, err
+		return int64(n), err
 	}
 
-	return n + int64(b), nil
+	return int64(n), nil
 }
 
 func (m *Payload) ReadFrom(r io.Reader) (int64, error) {

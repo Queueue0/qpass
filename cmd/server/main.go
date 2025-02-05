@@ -85,7 +85,7 @@ func (app *Application) handle(c net.Conn) {
 
 	sc, err := crypto.NewServerConn(c, kp.key, kp.pubKey)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(c.RemoteAddr(), err.Error())
 		return
 	}
 
@@ -100,11 +100,11 @@ connLoop:
 		var p protocol.Payload
 		_, err := p.ReadFrom(c)
 		if err != nil {
-			log.Println(err.Error())
+			log.Println(c.RemoteAddr(), err.Error())
 			return
 		}
 
-		log.Println(p.TypeString())
+		log.Println(c.RemoteAddr(), p.TypeString())
 
 		switch p.Type() {
 		case protocol.PING:
