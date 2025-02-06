@@ -71,6 +71,14 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 	return int(id), nil
 }
 
+func (m *UserModel) IDtoUUID(id int) (string, error) {
+	stmt := `SELECT uuid FROM users WHERE id=?`
+	row := m.DB.QueryRow(stmt, id)
+	var UUID string
+	err := row.Scan(&UUID)
+	return UUID, err
+}
+
 func (m *UserModel) Authenticate(username, password string) (User, error) {
 	stmt := `SELECT uuid, username, salt FROM users`
 	rows, err := m.DB.Query(stmt)

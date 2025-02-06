@@ -89,8 +89,6 @@ func main() {
 		succ.WriteTo(sc)
 	}
 
-	a.syncUsers()
-
 	go func() {
 		if a.UserModel.Count() <= 0 {
 			created := false

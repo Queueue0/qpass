@@ -280,6 +280,7 @@ func (a *Application) loginView(w *app.Window) error {
 			
 			if created {
 				errorTxt = "Successfully added new user! Please log in."
+				w.Invalidate()
 			}
 		}()
 	}
@@ -613,7 +614,17 @@ func (a *Application) newUserView(w *app.Window) (bool, error) {
 				v.CheckField(validator.Matches(cpw, pw), "password", "Passwords don't match")
 
 				if v.Valid() {
-					_, err := a.UserModel.Insert(un, pw)
+					id, err := a.UserModel.Insert(un, pw)
+					if err != nil {
+						return false, err
+					}
+
+					UUID, err := a.UserModel.IDtoUUID(id)
+					if err != nil {
+						return false, err
+					}
+
+					err = a.Logs.NewLastSync(UUID)
 					if err != nil {
 						return false, err
 					}

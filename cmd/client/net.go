@@ -25,7 +25,7 @@ func (app *Application) sync() error {
 }
 
 func (app *Application) syncUsers() error {
-	lastSync, err := app.Logs.GetLastSync()
+	lastSync, err := app.Logs.GetLastSync(app.ActiveUser.ID.String())
 	if err != nil {
 		return err
 	}

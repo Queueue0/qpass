@@ -87,7 +87,7 @@ func (m *LogModel) GetAll() ([]Log, error) {
 func (m *LogModel) GetAllSince(t time.Time, user string) ([]Log, error) {
 	stmt := `SELECT timestamp, change_type, user, old_name, new_name, old_password, new_password FROM log
 	WHERE timestamp > ? AND user = ?`
-	
+
 	rows, err := m.DB.Query(stmt, t, user)
 	if err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (m *LogModel) GetAllSince(t time.Time, user string) ([]Log, error) {
 func (m *LogModel) GetAllUserSince(t time.Time) ([]Log, error) {
 	stmt := `SELECT timestamp, change_type, user, old_name, new_name, old_password, new_password FROM log
 	WHERE timestamp > ? AND change_type LIKE "_USR"`
-	
+
 	rows, err := m.DB.Query(stmt, t)
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ func (m *LogModel) GetAllUserSince(t time.Time) ([]Log, error) {
 func (m *LogModel) GetAllPasswordSince(t time.Time, u string) ([]Log, error) {
 	stmt := `SELECT timestamp, change_type, user, old_name, new_name, old_password, new_password FROM log
 	WHERE timestamp > ? AND change_type LIKE "_PWD" AND user = ?`
-	
+
 	rows, err := m.DB.Query(stmt, t, u)
 	if err != nil {
 		return nil, err
@@ -153,19 +153,27 @@ func (m *LogModel) GetAllPasswordSince(t time.Time, u string) ([]Log, error) {
 	return ls, nil
 }
 
-func (m *LogModel) GetLastSync() (time.Time, error) {
-	stmt := `SELECT timestamp FROM last_user_sync`
+func (m *LogModel) GetLastSync(uid string) (time.Time, error) {
+	stmt := `SELECT timestamp FROM last_user_sync WHERE user=?`
 
-	row := m.DB.QueryRow(stmt)
+	row := m.DB.QueryRow(stmt, uid)
 	var t time.Time
 	err := row.Scan(&t)
-	
+
 	return t, err
 }
 
-func (m *LogModel) SetLastSync(t time.Time) error {
-	stmt := `UPDATE last_user_sync SET timestamp=?`
+func (m *LogModel) SetLastSync(t time.Time, uid string) error {
+	stmt := `UPDATE last_user_sync SET timestamp=? WHERE user=?`
 
-	_, err := m.DB.Exec(stmt, t)
+	_, err := m.DB.Exec(stmt, t, uid)
+	return err
+}
+
+func (m *LogModel) NewLastSync(uid string) error {
+	t := time.Time{}
+	stmt := `INSERT INTO last_user_sync (user, timestamp) VALUES (?, ?)`
+
+	_, err := m.DB.Exec(stmt, uid, t)
 	return err
 }
