@@ -84,11 +84,11 @@ func (m *LogModel) GetAll() ([]Log, error) {
 	return ls, nil
 }
 
-func (m *LogModel) GetAllSince(t time.Time) ([]Log, error) {
+func (m *LogModel) GetAllSince(t time.Time, user string) ([]Log, error) {
 	stmt := `SELECT timestamp, change_type, user, old_name, new_name, old_password, new_password FROM log
-	WHERE timestamp > ?`
+	WHERE timestamp > ? AND user = ?`
 	
-	rows, err := m.DB.Query(stmt, t)
+	rows, err := m.DB.Query(stmt, t, user)
 	if err != nil {
 		return nil, err
 	}

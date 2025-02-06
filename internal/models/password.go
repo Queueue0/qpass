@@ -6,12 +6,13 @@ import (
 	"strings"
 
 	"github.com/Queueue0/qpass/internal/crypto"
+	"github.com/google/uuid"
 )
 
 // e = encrypted
 type Password struct {
 	ID           int
-	UserID       int
+	UserID       uuid.UUID
 	ServiceName  string
 	Username     string
 	Password     string
@@ -68,7 +69,7 @@ func (m *PasswordModel) Insert(u User, serviceName, username, password string) (
 	}
 
 	stmt := `INSERT INTO passwords (userID, service, username, password) VALUES (?, ?, ?, ?)`
-	result, err := m.DB.Exec(stmt, u.ID, eServiceName, eUsername, ePassword)
+	result, err := m.DB.Exec(stmt, u.ID.String(), eServiceName, eUsername, ePassword)
 	if err != nil {
 		return 0, err
 	}
@@ -80,7 +81,7 @@ func (m *PasswordModel) Insert(u User, serviceName, username, password string) (
 
 	l := Log{
 		Type: APWD,
-		User: u.encryptedUsername,
+		User: u.ID.String(),
 		OldName: "",
 		NewName: eServiceName,
 		OldPW: "",
@@ -115,22 +116,28 @@ func (m *PasswordModel) Get(id int, u User) (Password, error) {
 
 func (m *PasswordModel) GetAllForUser(u User) (PasswordList, error) {
 	stmt := `SELECT id, userID, service, username, password FROM passwords WHERE userID = ?`
-	rows, err := m.DB.Query(stmt, u.ID)
+	rows, err := m.DB.Query(stmt, u.ID.String())
 	if err != nil {
-		return []Password{}, err
+		return nil, err
 	}
 
 	pws := PasswordList{}
 	for rows.Next() {
 		pw := Password{}
-		err := rows.Scan(&pw.ID, &pw.UserID, &pw.eServiceName, &pw.eUsername, &pw.ePassword)
+		var uuidString string
+		err := rows.Scan(&pw.ID, &uuidString, &pw.eServiceName, &pw.eUsername, &pw.ePassword)
 		if err != nil {
-			return PasswordList{}, err
+			return nil, err
 		}
 
 		err = pw.decrypt(u)
 		if err != nil {
-			return PasswordList{}, err
+			return nil, err
+		}
+
+		pw.UserID, err = uuid.Parse(uuidString)
+		if err != nil {
+			return nil, err
 		}
 
 		pws = append(pws, pw)

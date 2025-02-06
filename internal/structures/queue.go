@@ -1,5 +1,7 @@
 package structures
 
+import "fmt"
+
 type node[T any] struct {
 	v T
 	next *node[T]
@@ -29,4 +31,18 @@ func (q *Queue[T]) Dequeue() T {
 
 func (q *Queue[T]) HasNext() bool {
 	return q.head != nil
+}
+
+func (q *Queue[T]) String() string {
+	out := "Queue: ["
+	n := q.head
+	for n != nil {
+		out += fmt.Sprintf("%v", n.v)
+		if n.next != nil  {
+			out += ", "
+		}
+		n = n.next
+	}
+	out += "]"
+	return out
 }

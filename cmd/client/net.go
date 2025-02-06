@@ -20,6 +20,10 @@ func (app *Application) send(p *protocol.Payload) error {
 	return err
 }
 
+func (app *Application) sync() error {
+	return nil
+}
+
 func (app *Application) syncUsers() error {
 	lastSync, err := app.Logs.GetLastSync()
 	if err != nil {

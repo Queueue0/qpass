@@ -22,12 +22,12 @@ func OpenDB(dsn string) (*sql.DB, error) {
 }
 
 func InitializeDB(db *sql.DB, client bool) error {
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT, salt TEXT, last_sync DATETIME)")
+	_, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, uuid TEXT UNIQUE, username TEXT, salt TEXT, last_sync DATETIME)")
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS passwords (id INTEGER PRIMARY KEY, userId INT, service TEXT, username TEXT, password TEXT)")
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS passwords (id INTEGER PRIMARY KEY, userId TEXT, service TEXT, username TEXT, password TEXT)")
 	if err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func InitializeDB(db *sql.DB, client bool) error {
 	}
 
 	if client {
-		_, err = db.Exec("CREATE TABLE IF NOT EXISTS last_user_sync (timestamp DATETIME)")
+		_, err = db.Exec("CREATE TABLE IF NOT EXISTS last_user_sync (user TEXT, timestamp DATETIME)")
 		if err != nil {
 			return err
 		}
@@ -61,7 +61,7 @@ func InitializeDB(db *sql.DB, client bool) error {
 
 		if c <= 0 {
 			t := time.Time{}
-			_, err = db.Exec("INSERT INTO last_user_sync (timestamp) VALUES (?)", t)
+			_, err = db.Exec("INSERT INTO last_user_sync (user, timestamp) SELECT uuid, ? FROM users", t)
 			if err != nil {
 				return err
 			}

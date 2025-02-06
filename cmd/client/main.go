@@ -60,6 +60,7 @@ func main() {
 		ServerAddress: "127.0.0.1:10448",
 	}
 
+	// Connect to and ping server
 	sc, err := crypto.Dial(a.ServerAddress)
 	if err != nil {
 		log.Println("Failed to connect to server", err.Error())

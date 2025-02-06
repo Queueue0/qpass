@@ -5,13 +5,14 @@ import (
 	"errors"
 
 	"github.com/Queueue0/qpass/internal/crypto"
+	"github.com/google/uuid"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type User struct {
 	encryptedUsername string
 	salt              string
-	ID                int
+	ID                uuid.UUID
 	Username          string
 	Key               []byte
 }
@@ -37,8 +38,13 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 		return 0, err
 	}
 
-	stmt := `INSERT INTO users (username, salt) VALUES (?, ?)`
-	result, err := m.DB.Exec(stmt, encryptedUsername, salt)
+	uuid, err := uuid.NewRandom()
+	if err != nil {
+		return 0, err
+	}
+
+	stmt := `INSERT INTO users (uuid, username, salt) VALUES (?, ?, ?)`
+	result, err := m.DB.Exec(stmt, uuid.String(), encryptedUsername, salt)
 	if err != nil {
 		return 0, err
 	}
@@ -50,7 +56,7 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 
 	l := Log{
 		Type:    AUSR,
-		User:    encryptedUsername,
+		User:    uuid.String(),
 		OldName: "",
 		NewName: encryptedUsername,
 		OldPW:   "",
@@ -66,7 +72,7 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 }
 
 func (m *UserModel) Authenticate(username, password string) (User, error) {
-	stmt := `SELECT id, username, salt FROM users`
+	stmt := `SELECT uuid, username, salt FROM users`
 	rows, err := m.DB.Query(stmt)
 	if err != nil {
 		return User{}, err
@@ -76,8 +82,9 @@ func (m *UserModel) Authenticate(username, password string) (User, error) {
 
 	for rows.Next() {
 		var u User
+		var uuidString string
 
-		err := rows.Scan(&u.ID, &u.encryptedUsername, &u.salt)
+		err := rows.Scan(&uuidString, &u.encryptedUsername, &u.salt)
 		if err != nil {
 			return User{}, err
 		}
@@ -90,6 +97,10 @@ func (m *UserModel) Authenticate(username, password string) (User, error) {
 
 		if u.Username == username {
 			u.Key = key
+			u.ID, err = uuid.Parse(uuidString)
+			if err != nil {
+				return User{}, err
+			}
 			return u, nil
 		}
 	}
