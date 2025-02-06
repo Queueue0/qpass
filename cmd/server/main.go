@@ -110,7 +110,7 @@ connLoop:
 		case protocol.PING:
 			protocol.NewPong().WriteTo(c)
 		case protocol.SYNC:
-			app.sync(p)
+			app.sync(p, c)
 		case protocol.SUSR:
 			app.userSync(p, c)
 		case protocol.SUCC:

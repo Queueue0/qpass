@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
+	"math"
 )
 
 const (
@@ -15,14 +16,14 @@ const (
 	SUCC
 	FAIL
 
-	MaxPayloadSize uint32 = 32 << 20
+	MaxPayloadSize uint16 = math.MaxUint16
 )
 
 var ErrMaxSizeExceeded = errors.New("maximum paylod size exceeded")
 
 type Payload struct {
 	payloadType byte
-	bytes []byte
+	bytes       []byte
 }
 
 func (m *Payload) Type() byte {
@@ -62,8 +63,8 @@ func (m *Payload) String() string {
 
 func (m *Payload) WriteTo(w io.Writer) (int64, error) {
 	bytes := []byte{m.payloadType}
-	lenBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(lenBytes, uint32(len(m.Bytes())))
+	lenBytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(lenBytes, uint16(len(m.Bytes())))
 	bytes = append(bytes, lenBytes...)
 	bytes = append(bytes, m.Bytes()...)
 
@@ -82,13 +83,14 @@ func (m *Payload) ReadFrom(r io.Reader) (int64, error) {
 	}
 	var n int64 = 1
 
-	var size uint32
+	var size uint16
 	err = binary.Read(r, binary.BigEndian, &size)
 	if err != nil {
 		return 0, err
 	}
 	n += 4
-	
+
+	// Should, mathematically, never be possible
 	if size > MaxPayloadSize {
 		return n, ErrMaxSizeExceeded
 	}
@@ -120,8 +122,8 @@ func NewFail(message string) *Payload {
 }
 
 func NewPayload(payloadType byte, bytes []byte) (*Payload, error) {
-	if uint32(len(bytes)) > MaxPayloadSize {
+	if len(bytes) > int(MaxPayloadSize) {
 		return nil, ErrMaxSizeExceeded
-	} 
+	}
 	return &Payload{payloadType, bytes}, nil
 }

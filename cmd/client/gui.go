@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"gio.tools/icons"
 	"gioui.org/app"
 	"gioui.org/font"
 	"gioui.org/io/clipboard"
@@ -202,7 +203,7 @@ func (a *Application) mainView(w *app.Window) error {
 													Axis:    layout.Horizontal,
 													Spacing: layout.SpaceEnd,
 												}.Layout(gtx,
-													layout.Flexed(2,
+													layout.Flexed(4,
 														func(gtx layout.Context) layout.Dimensions {
 															text.Text = ""
 															text.Font.Weight = font.Normal
@@ -214,21 +215,24 @@ func (a *Application) mainView(w *app.Window) error {
 															return text.Layout(gtx)
 														},
 													),
-													layout.Flexed(1,
+													layout.Rigid(
 														func(gtx layout.Context) layout.Dimensions {
-															var bt string
+															var bi *widget.Icon
+															var bd string
 															if p.Shown {
-																bt = "Hide"
+																bi = icons.ActionVisibilityOff
+																bd = "Hide"
 															} else {
-																bt = "Show"
+																bi = icons.ActionVisibility
+																bd = "Show"
 															}
-															btn := material.Button(th, p.ShowBtn, bt)
+															btn := material.IconButton(th, p.ShowBtn, bi, bd)
 															return btn.Layout(gtx)
 														},
 													),
-													layout.Flexed(1,
+													layout.Rigid(
 														func(gtx layout.Context) layout.Dimensions {
-															btn := material.Button(th, p.CopyBtn, "Copy")
+															btn := material.IconButton(th, p.CopyBtn, icons.ContentContentCopy, "Copy Password")
 															return btn.Layout(gtx)
 														},
 													),
@@ -277,7 +281,7 @@ func (a *Application) loginView(w *app.Window) error {
 			if err != nil {
 				fmt.Println(err.Error())
 			}
-			
+
 			if created {
 				errorTxt = "Successfully added new user! Please log in."
 				w.Invalidate()

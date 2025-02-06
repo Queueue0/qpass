@@ -7,18 +7,21 @@ import (
 	"github.com/Queueue0/qpass/internal/protocol"
 )
 
-func (app *Application) sync(p protocol.Payload) {
+func (app *Application) sync(p protocol.Payload, c net.Conn) {
 	var sd protocol.SyncData
 	err := sd.Decode(p.Bytes())
 	if err != nil {
 		log.Println(err.Error())
+		protocol.NewFail(err.Error()).WriteTo(c)
 		return
 	}
 
 	for _, l := range sd.Logs {
 		log.Println(l.String())
 	}
-	return
+
+	// Send back same payload for now
+	p.WriteTo(c)
 }
 
 func (app *Application) userSync(p protocol.Payload, c net.Conn) {

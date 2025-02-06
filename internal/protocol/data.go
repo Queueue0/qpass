@@ -15,6 +15,7 @@ type PayloadData interface {
 
 type SyncData struct {
 	LastSync time.Time
+	UUID     string
 	Logs     []models.Log
 }
 

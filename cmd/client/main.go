@@ -116,6 +116,11 @@ func main() {
 			os.Exit(0)
 		}
 
+		err = a.sync()
+		if err != nil {
+			log.Println(err.Error())
+		}
+
 		w := new(app.Window)
 		w.Option(app.Title("QPass"))
 		w.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
