@@ -36,6 +36,8 @@ func InitializeDB(db *sql.DB, client bool) error {
 		timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
 		change_type CHAR(4),
 		user TEXT,
+		old_service TEXT,
+		new_service TEXT,
 		old_name TEXT,
 		new_name TEXT,
 		old_password TEXT,
