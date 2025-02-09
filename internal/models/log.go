@@ -55,7 +55,7 @@ func (l Log) Write(db *sql.DB) error {
 		old_service, new_service,
 		old_name, new_name,
 		old_password, new_password
-	) VALUES (?, ?, ?, ?, ?, ?)`
+	) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
 	_, err := db.Exec(stmt, l.Type, l.User, l.OldService, l.NewService, l.OldName, l.NewName, l.OldPW, l.NewPW)
 	if err != nil {
