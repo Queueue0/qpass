@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 
+	"github.com/Queueue0/qpass/internal/models"
 	"github.com/Queueue0/qpass/internal/protocol"
 )
 
@@ -16,8 +17,20 @@ func (app *Application) sync(p protocol.Payload, c net.Conn) {
 		return
 	}
 
+	// handle logs
 	for _, l := range sd.Logs {
-		log.Println(l.String())
+		l.Write(app.users.DB)
+		switch l.Type {
+		case models.AUSR:
+			_, err := app.users.InsertFromLog(l)
+			if err != nil {
+				log.Println(err.Error())
+				protocol.NewFail(err.Error()).WriteTo(c)
+				return
+			}
+		default:
+			continue
+		}
 	}
 
 	// Send back same payload for now

@@ -71,6 +71,17 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 	return int(id), nil
 }
 
+func (m *UserModel) InsertFromLog(l Log) (int, error) {
+	stmt := `INSERT INTO users (uuid, username, salt) VALUES (?, ?, ?)`
+	result, err := m.DB.Exec(stmt, l.User, l.NewName, l.NewPW)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	return int(id), err
+}
+
 func (m *UserModel) IDtoUUID(id int) (string, error) {
 	stmt := `SELECT uuid FROM users WHERE id=?`
 	row := m.DB.QueryRow(stmt, id)
