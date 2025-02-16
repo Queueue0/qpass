@@ -1,4 +1,4 @@
-package main
+package gui
 
 import (
 	"fmt"
@@ -56,9 +56,9 @@ func newGPassword(p models.Password) gPassword {
 	}
 }
 
-func (a *Application) mainView(w *app.Window) error {
+func MainView(w *app.Window, pwl models.PasswordList, pm *models.PasswordModel, au models.User) error {
 	pws := gpwList{}
-	for _, p := range a.Passwords {
+	for _, p := range pwl {
 		gp := newGPassword(p)
 		pws = append(pws, &gp)
 	}
@@ -80,13 +80,13 @@ func (a *Application) mainView(w *app.Window) error {
 					aw := new(app.Window)
 					aw.Option(app.Title("New Password"))
 					aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-					np, err := a.addView(aw)
+					np, err := AddView(aw, pm, au)
 					if err != nil {
 						fmt.Println(err.Error())
 					}
 
 					if np.ID > 0 {
-						a.Passwords = append(a.Passwords, np)
+						pwl = append(pwl, np)
 						gp := newGPassword(np)
 						pws = append(pws, &gp)
 						pws.sort()
@@ -251,7 +251,7 @@ func (a *Application) mainView(w *app.Window) error {
 	}
 }
 
-func (a *Application) loginView(w *app.Window) error {
+func LoginView(w *app.Window, um *models.UserModel, pm *models.PasswordModel, lm *models.LogModel, au *models.User, pwl models.PasswordList) error {
 	var ops op.Ops
 	var userName widget.Editor
 	var password widget.Editor
@@ -261,13 +261,13 @@ func (a *Application) loginView(w *app.Window) error {
 	th := material.NewTheme()
 
 	var login = func() {
-		u, err := a.UserModel.Authenticate(userName.Text(), password.Text())
+		u, err := um.Authenticate(userName.Text(), password.Text())
 		if err != nil {
 			errorTxt = err.Error()
 		} else {
-			a.ActiveUser = &u
+			au = &u
 			// TODO: handle this error
-			a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser)
+			pwl, _ = pm.GetAllForUser(*au)
 			w.Perform(system.ActionClose)
 		}
 	}
@@ -277,7 +277,7 @@ func (a *Application) loginView(w *app.Window) error {
 			aw := new(app.Window)
 			aw.Option(app.Title("New User"))
 			aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-			created, err := a.newUserView(aw)
+			created, err := NewUserView(aw, um, lm)
 			if err != nil {
 				fmt.Println(err.Error())
 			}
@@ -426,7 +426,7 @@ func (a *Application) loginView(w *app.Window) error {
 	}
 }
 
-func (a *Application) addView(w *app.Window) (models.Password, error) {
+func AddView(w *app.Window, pm *models.PasswordModel, au models.User) (models.Password, error) {
 	var ops op.Ops
 	var serviceName widget.Editor
 	var userName widget.Editor
@@ -451,13 +451,13 @@ func (a *Application) addView(w *app.Window) (models.Password, error) {
 				v.CheckField(validator.NotBlank(sn), "service", "Service Name cannot be blank")
 
 				if v.Valid() {
-					id, err := a.PasswordModel.Insert(*a.ActiveUser, sn, un, pw)
+					id, err := pm.Insert(au, sn, un, pw)
 					if err != nil {
 						return models.Password{}, err
 					}
 					np = models.Password{
 						ID:          id,
-						UserID:      a.ActiveUser.ID,
+						UserID:      au.ID,
 						ServiceName: sn,
 						Username:    un,
 						Password:    pw,
@@ -590,7 +590,7 @@ func (a *Application) addView(w *app.Window) (models.Password, error) {
 	}
 }
 
-func (a *Application) newUserView(w *app.Window) (bool, error) {
+func NewUserView(w *app.Window, um *models.UserModel, lm *models.LogModel) (bool, error) {
 	var ops op.Ops
 	var userName widget.Editor
 	var password widget.Editor
@@ -618,17 +618,17 @@ func (a *Application) newUserView(w *app.Window) (bool, error) {
 				v.CheckField(validator.Matches(cpw, pw), "password", "Passwords don't match")
 
 				if v.Valid() {
-					id, err := a.UserModel.Insert(un, pw)
+					id, err := um.Insert(un, pw)
 					if err != nil {
 						return false, err
 					}
 
-					UUID, err := a.UserModel.IDtoUUID(id)
+					UUID, err := um.IDtoUUID(id)
 					if err != nil {
 						return false, err
 					}
 
-					err = a.Logs.NewLastSync(UUID)
+					err = lm.NewLastSync(UUID)
 					if err != nil {
 						return false, err
 					}

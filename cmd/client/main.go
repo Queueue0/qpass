@@ -57,6 +57,7 @@ func main() {
 		UserModel:     &um,
 		PasswordModel: &pm,
 		Logs:          &lm,
+		ActiveUser:    &models.User{},
 		ServerAddress: "127.0.0.1:10448",
 	}
 
@@ -113,6 +114,7 @@ func main() {
 		}
 
 		if a.ActiveUser == nil {
+			log.Println("No active user")
 			os.Exit(0)
 		}
 
