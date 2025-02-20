@@ -10,6 +10,7 @@ import (
 const (
 	PING byte = iota
 	PONG
+	AUTH
 	SYNC
 	SUSR
 	SPWD
@@ -38,6 +39,8 @@ func (m *Payload) TypeString() string {
 		return "PING"
 	case PONG:
 		return "PONG"
+	case AUTH:
+		return "AUTH"
 	case SYNC:
 		return "SYNC"
 	case SUSR:

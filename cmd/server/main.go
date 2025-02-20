@@ -14,6 +14,7 @@ import (
 type Application struct {
 	users     *models.UserModel
 	passwords *models.PasswordModel
+	logs      *models.LogModel
 	homeDir   string
 }
 
@@ -51,9 +52,14 @@ func main() {
 		DB: db,
 	}
 
+	lm := models.LogModel{
+		DB: db,
+	}
+
 	a := Application{
 		users:     &um,
 		passwords: &pm,
+		logs:      &lm,
 		homeDir:   qpassHome,
 	}
 
@@ -94,6 +100,9 @@ func (app *Application) handle(c net.Conn) {
 
 func (app *Application) respond(c net.Conn) {
 	defer c.Close()
+	authenticated := false
+	authFail := "Auth Failure"
+	notAuthed := "Not Authenticated"
 
 connLoop:
 	for {
@@ -109,9 +118,32 @@ connLoop:
 		switch p.Type() {
 		case protocol.PING:
 			protocol.NewPong().WriteTo(c)
+		case protocol.AUTH:
+			if authenticated {
+				authenticated = false
+				protocol.NewFail(authFail).WriteTo(c)
+				continue
+			}
+			authenticated, err = app.authenticate(p)
+			if err != nil {
+				protocol.NewFail(authFail).WriteTo(c)
+				continue
+			}
+
+			if authenticated {
+				protocol.NewSucc().WriteTo(c)
+			} else {
+				protocol.NewFail(authFail).WriteTo(c)
+			}
 		case protocol.SYNC:
+			if !authenticated {
+				protocol.NewFail(notAuthed).WriteTo(c)
+			}
 			app.sync(p, c)
 		case protocol.SUSR:
+			if !authenticated {
+				protocol.NewFail(notAuthed).WriteTo(c)
+			}
 			app.userSync(p, c)
 		case protocol.SUCC:
 			break connLoop

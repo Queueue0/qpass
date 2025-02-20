@@ -1,4 +1,4 @@
-package gui
+package main
 
 import (
 	"fmt"
@@ -14,12 +14,11 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
-	"github.com/Queueue0/qpass/internal/models"
 )
 
-func MainView(w *app.Window, pwl models.PasswordList, pm *models.PasswordModel, au models.User) error {
+func (a *Application) MainView(w *app.Window) error {
 	pws := gpwList{}
-	for _, p := range pwl {
+	for _, p := range a.Passwords {
 		gp := newGPassword(p)
 		pws = append(pws, &gp)
 	}
@@ -41,13 +40,13 @@ func MainView(w *app.Window, pwl models.PasswordList, pm *models.PasswordModel, 
 					aw := new(app.Window)
 					aw.Option(app.Title("New Password"))
 					aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-					np, err := AddView(aw, pm, au)
+					np, err := a.AddView(aw)
 					if err != nil {
 						fmt.Println(err.Error())
 					}
 
 					if np.ID > 0 {
-						pwl = append(pwl, np)
+						a.Passwords = append(a.Passwords, np)
 						gp := newGPassword(np)
 						pws = append(pws, &gp)
 						pws.sort()

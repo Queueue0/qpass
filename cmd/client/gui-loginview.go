@@ -1,4 +1,4 @@
-package gui
+package main
 
 import (
 	"fmt"
@@ -10,10 +10,9 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
-	"github.com/Queueue0/qpass/internal/models"
 )
 
-func LoginView(w *app.Window, um *models.UserModel, pm *models.PasswordModel, lm *models.LogModel, au *models.User, pwl models.PasswordList) error {
+func (a *Application) LoginView(w *app.Window) error {
 	var ops op.Ops
 	var userName widget.Editor
 	var password widget.Editor
@@ -23,13 +22,13 @@ func LoginView(w *app.Window, um *models.UserModel, pm *models.PasswordModel, lm
 	th := material.NewTheme()
 
 	var login = func() {
-		u, err := um.Authenticate(userName.Text(), password.Text())
+		u, err := a.UserModel.Authenticate(userName.Text(), password.Text())
 		if err != nil {
 			errorTxt = err.Error()
 		} else {
-			au = &u
+			a.ActiveUser = &u
 			// TODO: handle this error
-			pwl, _ = pm.GetAllForUser(*au)
+			a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser)
 			w.Perform(system.ActionClose)
 		}
 	}
@@ -39,7 +38,7 @@ func LoginView(w *app.Window, um *models.UserModel, pm *models.PasswordModel, lm
 			aw := new(app.Window)
 			aw.Option(app.Title("New User"))
 			aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-			created, err := NewUserView(aw, um, lm)
+			created, err := a.NewUserView(aw)
 			if err != nil {
 				fmt.Println(err.Error())
 			}

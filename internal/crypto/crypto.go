@@ -80,3 +80,7 @@ func GenSalt(n uint32) (string, error) {
 
 	return base64.RawStdEncoding.EncodeToString(b), nil
 }
+
+func Hash(plaintext []byte, salt []byte, time uint32) []byte {
+	return argon2.IDKey(plaintext, salt, time, 64*1024, 2, 32)
+}

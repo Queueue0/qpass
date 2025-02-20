@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"time"
 
 	"github.com/Queueue0/qpass/internal/crypto"
 	"github.com/Queueue0/qpass/internal/protocol"
@@ -29,6 +30,43 @@ func (app *Application) sync() error {
 	}
 
 	activeUUID := app.ActiveUser.ID.String()
+	ad := protocol.AuthData{UUID: activeUUID, Token: app.ActiveUser.AuthToken}
+	authBytes, err := ad.Encode()
+	if err != nil {
+		return err
+	}
+
+	apl, err := protocol.NewPayload(protocol.AUTH, authBytes)
+	if err != nil {
+		return err
+	}
+
+	c, err := crypto.Dial(app.ServerAddress)
+	if err != nil {
+		return err
+	}
+	defer c.Close()
+
+	_, err = apl.WriteTo(c)
+	if err != nil {
+		return err
+	}
+
+	authResp := protocol.Payload{}
+	_, err = authResp.ReadFrom(c)
+	if err != nil {
+		return err
+	}
+
+	if authResp.Type() == protocol.FAIL {
+		protocol.NewSucc().WriteTo(c)
+		return errors.New("Remote error: " + authResp.String())
+	}
+
+	if authResp.Type() != protocol.SUCC {
+		return errors.New("Unexpected response type from server")
+	}
+
 	lastSync, err := app.Logs.GetLastSync(activeUUID)
 	if err != nil {
 		return err
@@ -50,19 +88,16 @@ func (app *Application) sync() error {
 		return err
 	}
 
-	c, err := crypto.Dial(app.ServerAddress)
-	if err != nil {
-		return err
-	}
-	defer c.Close()
-
 	_, err = pl.WriteTo(c)
 	if err != nil {
 		return err
 	}
 
 	r := protocol.Payload{}
-	r.ReadFrom(c)
+	_, err = r.ReadFrom(c)
+	if err != nil {
+		return err
+	}
 	if r.Type() == protocol.FAIL {
 		// For now, SUCC is the only way to terminate a connection
 		// Should probably add a DONE or something instead
@@ -79,6 +114,11 @@ func (app *Application) sync() error {
 	// TODO: Handle response data
 	for _, l := range rd.Logs {
 		log.Println(l.String())
+	}
+
+	err = app.Logs.SetLastSync(time.Now(), activeUUID)
+	if err != nil {
+		log.Println(err.Error())
 	}
 
 	protocol.NewSucc().WriteTo(c)

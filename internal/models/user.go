@@ -2,7 +2,9 @@ package models
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"errors"
+	"fmt"
 
 	"github.com/Queueue0/qpass/internal/crypto"
 	"github.com/google/uuid"
@@ -15,6 +17,7 @@ type User struct {
 	ID                uuid.UUID
 	Username          string
 	Key               []byte
+	AuthToken         []byte
 }
 
 func (u User) EUsername() string {
@@ -65,10 +68,46 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 
 	err = l.Write(m.DB)
 	if err != nil {
+		fmt.Println(err.Error())
 		return int(id), LogWriteError
 	}
 
 	return int(id), nil
+}
+
+func (m *UserModel) ServerInsert(u User) (int, error) {
+	token := base64.RawStdEncoding.EncodeToString(u.AuthToken)
+	stmt := `INSERT INTO users (uuid, auth_token) VALUES (?, ?)`
+	result, err := m.DB.Exec(stmt, u.ID.String(), token)
+	if err != nil {
+		return 0, err
+	}
+	
+	id, err := result.LastInsertId()
+	return int(id), err
+}
+
+func (m *UserModel) GetByUUID(id string) (*User, error) {
+	row := m.DB.QueryRow("SELECT uuid, auth_token FROM users WHERE uuid = ?", id)
+
+	var uuidStr, tokenStr string
+	err := row.Scan(&uuidStr, &tokenStr)
+	if err != nil {
+		return nil, err
+	}
+
+	var u User
+	u.ID, err = uuid.Parse(uuidStr)
+	if err != nil {
+		return nil, err
+	}
+
+	u.AuthToken, err = base64.RawStdEncoding.DecodeString(tokenStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &u, nil
 }
 
 func (m *UserModel) InsertFromLog(l Log) (int, error) {
@@ -120,6 +159,8 @@ func (m *UserModel) Authenticate(username, password string) (User, error) {
 			if err != nil {
 				return User{}, err
 			}
+
+			u.AuthToken = crypto.Hash([]byte(password), []byte(u.Username), 10)
 			return u, nil
 		}
 	}

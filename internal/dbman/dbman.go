@@ -22,14 +22,24 @@ func OpenDB(dsn string) (*sql.DB, error) {
 }
 
 func InitializeDB(db *sql.DB, client bool) error {
-	_, err := db.Exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, uuid TEXT UNIQUE, username TEXT, salt TEXT, last_sync DATETIME)")
+	var stmt string
+	if client {
+		stmt = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, uuid TEXT UNIQUE, username TEXT, salt TEXT, last_sync DATETIME)"
+	} else {
+		stmt = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, uuid TEXT UNIQUE, auth_token TEXT)"
+	}
+	_, err := db.Exec(stmt)
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE IF NOT EXISTS passwords (id INTEGER PRIMARY KEY, userId TEXT, service TEXT, username TEXT, password TEXT)")
-	if err != nil {
-		return err
+	// Server should only have to store logs, not passwords
+	// Maybe should change to simplify syncing?
+	if client {
+		_, err = db.Exec("CREATE TABLE IF NOT EXISTS passwords (id INTEGER PRIMARY KEY, userId TEXT, service TEXT, username TEXT, password TEXT)")
+		if err != nil {
+			return err
+		}
 	}
 
 	logstmt := `CREATE TABLE IF NOT EXISTS log (

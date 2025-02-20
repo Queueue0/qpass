@@ -1,4 +1,4 @@
-package gui
+package main
 
 import (
 	"image/color"
@@ -14,15 +14,15 @@ import (
 	"github.com/Queueue0/qpass/internal/validator"
 )
 
-func NewUserView(w *app.Window, um *models.UserModel, lm *models.LogModel) (bool, error) {
+func (a *Application) AddView(w *app.Window) (models.Password, error) {
 	var ops op.Ops
+	var serviceName widget.Editor
 	var userName widget.Editor
 	var password widget.Editor
-	var confirmPassword widget.Editor
 	var addBtn widget.Clickable
 	var v validator.Validator
 
-	created := false
+	var np models.Password
 
 	th := material.NewTheme()
 
@@ -32,32 +32,25 @@ func NewUserView(w *app.Window, um *models.UserModel, lm *models.LogModel) (bool
 			gtx := app.NewContext(&ops, e)
 
 			if addBtn.Clicked(gtx) {
-				un, pw, cpw := userName.Text(), password.Text(), confirmPassword.Text()
+				sn, un, pw := serviceName.Text(), userName.Text(), password.Text()
 
 				// Validate data
 				v = validator.Validator{}
-				v.CheckField(validator.NotBlank(un), "username", "This field cannot be blank")
-				v.CheckField(validator.NotBlank(pw), "password", "This field cannot be blank")
-				v.CheckField(validator.NotBlank(cpw), "confirm", "This field cannot be blank")
-				v.CheckField(validator.Matches(cpw, pw), "password", "Passwords don't match")
+				v.CheckField(validator.NotBlank(sn), "service", "Service Name cannot be blank")
 
 				if v.Valid() {
-					id, err := um.Insert(un, pw)
+					id, err := a.PasswordModel.Insert(*a.ActiveUser, sn, un, pw)
 					if err != nil {
-						return false, err
+						return models.Password{}, err
+					}
+					np = models.Password{
+						ID:          id,
+						UserID:      a.ActiveUser.ID,
+						ServiceName: sn,
+						Username:    un,
+						Password:    pw,
 					}
 
-					UUID, err := um.IDtoUUID(id)
-					if err != nil {
-						return false, err
-					}
-
-					err = lm.NewLastSync(UUID)
-					if err != nil {
-						return false, err
-					}
-
-					created = true
 					w.Perform(system.ActionClose)
 				}
 			}
@@ -71,7 +64,7 @@ func NewUserView(w *app.Window, um *models.UserModel, lm *models.LogModel) (bool
 						if v.Valid() {
 							return layout.Dimensions{}
 						}
-						errTxt, in := v.FieldErrors["username"]
+						errTxt, in := v.FieldErrors["service"]
 						if !in {
 							return layout.Dimensions{}
 						}
@@ -87,6 +80,32 @@ func NewUserView(w *app.Window, um *models.UserModel, lm *models.LogModel) (bool
 							},
 						)
 
+					},
+				),
+				layout.Rigid(
+					func(gtx layout.Context) layout.Dimensions {
+						txt := material.Editor(th, &serviceName, "Service Name")
+						serviceName.SingleLine = true
+						serviceName.Submit = true
+
+						margins := layout.UniformInset(unit.Dp(10))
+						padding := layout.UniformInset(inputPadding)
+
+						border := widget.Border{
+							Color:        borderColor,
+							CornerRadius: unit.Dp(1),
+							Width:        unit.Dp(2),
+						}
+
+						return margins.Layout(gtx,
+							func(gtx layout.Context) layout.Dimensions {
+								return border.Layout(gtx,
+									func(gtx layout.Context) layout.Dimensions {
+										return padding.Layout(gtx, txt.Layout)
+									},
+								)
+							},
+						)
 					},
 				),
 				layout.Rigid(
@@ -117,83 +136,9 @@ func NewUserView(w *app.Window, um *models.UserModel, lm *models.LogModel) (bool
 				),
 				layout.Rigid(
 					func(gtx layout.Context) layout.Dimensions {
-						if v.Valid() {
-							return layout.Dimensions{}
-						}
-						errTxt, in := v.FieldErrors["password"]
-						if !in {
-							return layout.Dimensions{}
-						}
-
-						txt := material.Body1(th, errTxt)
-						txt.Color = color.NRGBA{R: 244, G: 67, B: 54, A: 255}
-
-						margins := layout.UniformInset(unit.Dp(10))
-						margins.Bottom = 0
-						return margins.Layout(gtx,
-							func(gtx layout.Context) layout.Dimensions {
-								return txt.Layout(gtx)
-							},
-						)
-
-					},
-				),
-				layout.Rigid(
-					func(gtx layout.Context) layout.Dimensions {
 						txt := material.Editor(th, &password, "Password")
 						password.SingleLine = true
-						password.Mask = '*'
 						password.Submit = true
-
-						margins := layout.UniformInset(unit.Dp(10))
-						padding := layout.UniformInset(inputPadding)
-
-						border := widget.Border{
-							Color:        borderColor,
-							CornerRadius: unit.Dp(1),
-							Width:        unit.Dp(2),
-						}
-
-						return margins.Layout(gtx,
-							func(gtx layout.Context) layout.Dimensions {
-								return border.Layout(gtx,
-									func(gtx layout.Context) layout.Dimensions {
-										return padding.Layout(gtx, txt.Layout)
-									},
-								)
-							},
-						)
-					},
-				),
-				layout.Rigid(
-					func(gtx layout.Context) layout.Dimensions {
-						if v.Valid() {
-							return layout.Dimensions{}
-						}
-						errTxt, in := v.FieldErrors["confirm"]
-						if !in {
-							return layout.Dimensions{}
-						}
-
-						txt := material.Body1(th, errTxt)
-						txt.Color = color.NRGBA{R: 244, G: 67, B: 54, A: 255}
-
-						margins := layout.UniformInset(unit.Dp(10))
-						margins.Bottom = 0
-						return margins.Layout(gtx,
-							func(gtx layout.Context) layout.Dimensions {
-								return txt.Layout(gtx)
-							},
-						)
-
-					},
-				),
-				layout.Rigid(
-					func(gtx layout.Context) layout.Dimensions {
-						txt := material.Editor(th, &confirmPassword, "Confirm Password")
-						confirmPassword.SingleLine = true
-						confirmPassword.Mask = '*'
-						confirmPassword.Submit = true
 
 						margins := layout.UniformInset(unit.Dp(10))
 						padding := layout.UniformInset(inputPadding)
@@ -228,7 +173,7 @@ func NewUserView(w *app.Window, um *models.UserModel, lm *models.LogModel) (bool
 			e.Frame(gtx.Ops)
 
 		case app.DestroyEvent:
-			return created, e.Err
+			return np, e.Err
 		}
 	}
 }

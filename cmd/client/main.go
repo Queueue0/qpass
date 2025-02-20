@@ -96,7 +96,7 @@ func main() {
 			aw := new(app.Window)
 			aw.Option(app.Title("New User"))
 			aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-			created, err = a.newUserView(aw)
+			created, err = a.NewUserView(aw)
 			if err != nil {
 				fmt.Println(err.Error())
 			}
@@ -109,11 +109,11 @@ func main() {
 		lw := new(app.Window)
 		lw.Option(app.Title("Login"))
 		lw.Option(app.Size(unit.Dp(500), unit.Dp(200)))
-		if err := a.loginView(lw); err != nil {
+		if err := a.LoginView(lw); err != nil {
 			log.Fatal(err)
 		}
 
-		if a.ActiveUser == nil {
+		if len(a.ActiveUser.Key) <= 0 {
 			log.Println("No active user")
 			os.Exit(0)
 		}
@@ -126,7 +126,7 @@ func main() {
 		w := new(app.Window)
 		w.Option(app.Title("QPass"))
 		w.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-		if err := a.mainView(w); err != nil {
+		if err := a.MainView(w); err != nil {
 			log.Fatal(err)
 		}
 		os.Exit(0)
