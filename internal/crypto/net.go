@@ -33,21 +33,24 @@ type secureConn struct {
 	queue structures.Queue[byte] // For storing leftover bytes if the buffer supplied to Read isn't big enough
 }
 
-// TODO: Cleanup
 func NewClientConn(c net.Conn) (*secureConn, error) {
+	// Generate ephemeral DH key pair
 	privkey, err := ecdh.X25519().GenerateKey(rand.Reader)
 	if err != nil {
 		c.Close()
 		return nil, err
 	}
-
 	pubkey := privkey.PublicKey()
+
+	// Send client hello
+	// Initial packet to server containing our DH public key
 	_, err = c.Write(pubkey.Bytes())
 	if err != nil {
 		c.Close()
 		return nil, err
 	}
 
+	// Receive server's DH public key
 	rkBytes := make([]byte, pubKeySize)
 	_, err = c.Read(rkBytes)
 	if err != nil {
@@ -55,6 +58,7 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 		return nil, err
 	}
 
+	// Receive server's RSA public key
 	rsaKeyLenBuff := make([]byte, rsaKeyByteLen)
 	_, err = c.Read(rsaKeyLenBuff)
 	if err != nil {
@@ -83,6 +87,7 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 		return nil, err
 	}
 
+	// Compare received RSA public key against our known hosts
 	knownKey, ok := knownHosts[c.RemoteAddr().String()]
 	if !ok {
 		// Add host if it doesn't exist
@@ -96,6 +101,7 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 		}
 	}
 
+	// Receive signature over all data exchanged so far
 	sigLenBuff := make([]byte, 2)
 	_, err = c.Read(sigLenBuff)
 	if err != nil {
@@ -112,6 +118,7 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 		return nil, err
 	}
 
+	// Verify signature to confirm the server has the RSA private key
 	opts := rsa.PSSOptions{
 		SaltLength: rsa.PSSSaltLengthAuto,
 		Hash:       crypto.BLAKE2b_512,
@@ -130,6 +137,7 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 		return nil, err
 	}
 
+	// Compute DH shared secret
 	remoteKey, err := ecdh.X25519().NewPublicKey(rkBytes)
 	if err != nil {
 		c.Close()
@@ -144,6 +152,7 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 
 	ss = genSharedKey(ss)
 
+	// Receive MAC from server
 	macLenBytes := make([]byte, 2)
 	_, err = c.Read(macLenBytes)
 	if err != nil {
@@ -160,6 +169,7 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 		return nil, err
 	}
 
+	// Verify MAC to confirm server computed the same DH shared secret
 	macData, err := decryptBytes(mac, ss, nil)
 	if err != nil {
 		c.Close()
@@ -174,6 +184,7 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 	return &secureConn{c, ss, structures.Queue[byte]{}}, nil
 }
 
+// Just makes it easier to create a client-side secureConn
 func Dial(addr string) (*secureConn, error) {
 	c, err := net.Dial("tcp", addr)
 	if err != nil {
@@ -184,6 +195,7 @@ func Dial(addr string) (*secureConn, error) {
 }
 
 func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*secureConn, error) {
+	// Receive client's ephemeral DH public key
 	b := make([]byte, pubKeySize)
 	_, err := c.Read(b)
 	if err != nil {
@@ -196,12 +208,14 @@ func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*
 		return nil, err
 	}
 
+	// Generate our own ephemeral DH key pair
 	privkey, err := ecdh.X25519().GenerateKey(rand.Reader)
 	if err != nil {
 		c.Close()
 		return nil, err
 	}
 
+	// Compute (s)hared (s)ecret
 	ss, err := privkey.ECDH(remoteKey)
 	if err != nil {
 		c.Close()
@@ -212,11 +226,13 @@ func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*
 
 	pubkey := privkey.PublicKey()
 
+	// Get byte representation of RSA public key to send
 	rsaPubBytes := x509.MarshalPKCS1PublicKey(rsaPub)
 	// Unsure if rsaPubLen is necessary, will research
 	rsaPubLen := make([]byte, rsaKeyByteLen)
 	binary.BigEndian.PutUint16(rsaPubLen, uint16(len(rsaPubBytes)))
 
+	// Sign all data so far with our RSA private key
 	opts := rsa.PSSOptions{
 		SaltLength: rsa.PSSSaltLengthAuto,
 		Hash:       crypto.BLAKE2b_512,
@@ -238,6 +254,7 @@ func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*
 	sigLen := make([]byte, 2)
 	binary.BigEndian.PutUint16(sigLen, uint16(len(sig)))
 
+	// Generate a MAC over all data so far using the DH shared secret
 	// I may be wrong, but I belive that since I'm using XChaCha20-Poly1305 it should be sufficient
 	// to encrypt the data as normal to serve as a MAC
 	mac, err := encryptBytes(slices.Concat(remoteKey.Bytes(), pubkey.Bytes(), rsaPubBytes, sig), ss, nil)
@@ -249,6 +266,7 @@ func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*
 	macLen := make([]byte, 2)
 	binary.BigEndian.PutUint16(macLen, uint16(len(mac)))
 
+	// Send server hello
 	_, err = c.Write(slices.Concat(pubkey.Bytes(), rsaPubLen, rsaPubBytes, sigLen, sig, macLen, mac))
 	if err != nil {
 		c.Close()
@@ -258,6 +276,7 @@ func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*
 	return &secureConn{c, ss, structures.Queue[byte]{}}, nil
 }
 
+// TODO: Chunking for oversize packets
 func (s *secureConn) Read(b []byte) (int, error) {
 	n := 0
 	for s.queue.HasNext() && n < len(b) {
@@ -267,8 +286,7 @@ func (s *secureConn) Read(b []byte) (int, error) {
 
 	// Don't bother reading more from s.c if the supplied buffer filled up from the queue
 	if n < len(b) {
-		// Size schenanigans might be unnecessary, added them while debugging
-		// I think it probably makes it more robust anyway, so I'm leaving it for now
+		// Max size is too big, should be uint16 rather than uint32
 		sizeBytes := make([]byte, 4)
 		_, err := s.c.Read(sizeBytes)
 		if err != nil {
