@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"io"
-	"math"
 )
 
 const (
@@ -17,7 +16,7 @@ const (
 	SUCC
 	FAIL
 
-	MaxPayloadSize uint16 = math.MaxUint16
+	MaxPayloadSize uint16 = 50 * (2 << 9) // 50KiB
 )
 
 var ErrMaxSizeExceeded = errors.New("maximum paylod size exceeded")
@@ -93,7 +92,6 @@ func (m *Payload) ReadFrom(r io.Reader) (int64, error) {
 	}
 	n += 4
 
-	// Should, mathematically, never be possible
 	if size > MaxPayloadSize {
 		return n, ErrMaxSizeExceeded
 	}

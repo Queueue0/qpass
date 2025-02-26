@@ -286,14 +286,13 @@ func (s *secureConn) Read(b []byte) (int, error) {
 
 	// Don't bother reading more from s.c if the supplied buffer filled up from the queue
 	if n < len(b) {
-		// Max size is too big, should be uint16 rather than uint32
-		sizeBytes := make([]byte, 4)
+		sizeBytes := make([]byte, 2)
 		_, err := s.c.Read(sizeBytes)
 		if err != nil {
 			return 0, err
 		}
 
-		size := binary.BigEndian.Uint32(sizeBytes)
+		size := binary.BigEndian.Uint16(sizeBytes)
 
 		buf := make([]byte, size)
 		_, err = s.c.Read(buf)
@@ -325,8 +324,8 @@ func (s *secureConn) Write(b []byte) (int, error) {
 		return 0, err
 	}
 
-	sizeBytes := make([]byte, 4)
-	binary.BigEndian.PutUint32(sizeBytes, uint32(len(e)))
+	sizeBytes := make([]byte, 2)
+	binary.BigEndian.PutUint16(sizeBytes, uint16(len(e)))
 
 	n, err := s.c.Write(slices.Concat(sizeBytes, e))
 	if err != nil {
