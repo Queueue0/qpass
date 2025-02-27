@@ -1,9 +1,9 @@
 package crypto
 
 import (
-	"bytes"
 	"crypto"
 	"crypto/ecdh"
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -15,7 +15,7 @@ import (
 
 	"github.com/Queueue0/qpass/internal/structures"
 	"golang.org/x/crypto/argon2"
-	_ "golang.org/x/crypto/blake2b"
+	"golang.org/x/crypto/blake2b"
 )
 
 func genSharedKey(b []byte) []byte {
@@ -124,14 +124,14 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 		Hash:       crypto.BLAKE2b_512,
 	}
 
-	hash := opts.HashFunc().New()
-	_, err = hash.Write(slices.Concat(pubkey.Bytes(), rkBytes, rsaKeyBytes))
+	sigHash := opts.HashFunc().New()
+	_, err = sigHash.Write(slices.Concat(pubkey.Bytes(), rkBytes, rsaKeyBytes))
 	if err != nil {
 		c.Close()
 		return nil, err
 	}
 
-	err = rsa.VerifyPSS(rsaKey, crypto.BLAKE2b_512, hash.Sum(nil), sig, &opts)
+	err = rsa.VerifyPSS(rsaKey, crypto.BLAKE2b_512, sigHash.Sum(nil), sig, &opts)
 	if err != nil {
 		c.Close()
 		return nil, err
@@ -170,13 +170,15 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 	}
 
 	// Verify MAC to confirm server computed the same DH shared secret
-	macData, err := decryptBytes(mac, ss, nil)
+	hm, err := blake2b.New512(ss)
 	if err != nil {
 		c.Close()
 		return nil, err
 	}
-
-	if !bytes.Equal(macData, slices.Concat(pubkey.Bytes(), rkBytes, rsaKeyBytes, sig)) {
+	hm.Write(slices.Concat(pubkey.Bytes(), remoteKey.Bytes(), rsaKeyBytes, sig))
+	expectedMac := hm.Sum(nil)
+	
+	if !hmac.Equal(mac, expectedMac) {
 		c.Close()
 		return nil, errors.New("MAC authentication failed")
 	}
@@ -238,14 +240,14 @@ func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*
 		Hash:       crypto.BLAKE2b_512,
 	}
 
-	hash := opts.HashFunc().New()
-	_, err = hash.Write(slices.Concat(remoteKey.Bytes(), pubkey.Bytes(), rsaPubBytes))
+	sigHash := opts.HashFunc().New()
+	_, err = sigHash.Write(slices.Concat(remoteKey.Bytes(), pubkey.Bytes(), rsaPubBytes))
 	if err != nil {
 		c.Close()
 		return nil, err
 	}
 
-	sig, err := rsaKey.Sign(rand.Reader, hash.Sum(nil), &opts)
+	sig, err := rsaKey.Sign(rand.Reader, sigHash.Sum(nil), &opts)
 	if err != nil {
 		c.Close()
 		return nil, err
@@ -255,13 +257,13 @@ func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*
 	binary.BigEndian.PutUint16(sigLen, uint16(len(sig)))
 
 	// Generate a MAC over all data so far using the DH shared secret
-	// I may be wrong, but I belive that since I'm using XChaCha20-Poly1305 it should be sufficient
-	// to encrypt the data as normal to serve as a MAC
-	mac, err := encryptBytes(slices.Concat(remoteKey.Bytes(), pubkey.Bytes(), rsaPubBytes, sig), ss, nil)
+	hm, err := blake2b.New512(ss)
 	if err != nil {
 		c.Close()
 		return nil, err
 	}
+	hm.Write(slices.Concat(remoteKey.Bytes(), pubkey.Bytes(), rsaPubBytes, sig))
+	mac := hm.Sum(nil)
 
 	macLen := make([]byte, 2)
 	binary.BigEndian.PutUint16(macLen, uint16(len(mac)))
