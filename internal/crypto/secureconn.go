@@ -25,6 +25,7 @@ func genSharedKey(b []byte) []byte {
 const (
 	pubKeySize    = 32
 	rsaKeyByteLen = 2
+	macLen        = 64
 )
 
 type secureConn struct {
@@ -153,15 +154,6 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 	ss = genSharedKey(ss)
 
 	// Receive MAC from server
-	macLenBytes := make([]byte, 2)
-	_, err = c.Read(macLenBytes)
-	if err != nil {
-		c.Close()
-		return nil, err
-	}
-
-	macLen := binary.BigEndian.Uint16(macLenBytes)
-
 	mac := make([]byte, macLen)
 	_, err = c.Read(mac)
 	if err != nil {
@@ -177,7 +169,7 @@ func NewClientConn(c net.Conn) (*secureConn, error) {
 	}
 	hm.Write(slices.Concat(pubkey.Bytes(), remoteKey.Bytes(), rsaKeyBytes, sig))
 	expectedMac := hm.Sum(nil)
-	
+
 	if !hmac.Equal(mac, expectedMac) {
 		c.Close()
 		return nil, errors.New("MAC authentication failed")
@@ -265,11 +257,8 @@ func NewServerConn(c net.Conn, rsaKey *rsa.PrivateKey, rsaPub *rsa.PublicKey) (*
 	hm.Write(slices.Concat(remoteKey.Bytes(), pubkey.Bytes(), rsaPubBytes, sig))
 	mac := hm.Sum(nil)
 
-	macLen := make([]byte, 2)
-	binary.BigEndian.PutUint16(macLen, uint16(len(mac)))
-
 	// Send server hello
-	_, err = c.Write(slices.Concat(pubkey.Bytes(), rsaPubLen, rsaPubBytes, sigLen, sig, macLen, mac))
+	_, err = c.Write(slices.Concat(pubkey.Bytes(), rsaPubLen, rsaPubBytes, sigLen, sig, mac))
 	if err != nil {
 		c.Close()
 		return nil, err
