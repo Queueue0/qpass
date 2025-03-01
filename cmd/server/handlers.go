@@ -76,7 +76,7 @@ func (app *Application) authenticate(p protocol.Payload) (bool, error) {
 		return false, err
 	}
 
-	ad.Token = crypto.Hash(ad.Token, nil, 100)
+	ad.Token = crypto.Hash(ad.Token, nil, 30)
 
 	u, err := app.users.GetByUUID(ad.UUID)
 	if err != nil {

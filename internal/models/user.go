@@ -13,7 +13,6 @@ import (
 
 type User struct {
 	encryptedUsername string
-	salt              string
 	ID                uuid.UUID
 	Username          string
 	Key               []byte
@@ -29,12 +28,7 @@ type UserModel struct {
 }
 
 func (m *UserModel) Insert(username, password string) (int, error) {
-	salt, err := crypto.GenSalt(16)
-	if err != nil {
-		return 0, err
-	}
-
-	key := crypto.GetKey(password, salt)
+	key := crypto.GetKey(password, username)
 
 	encryptedUsername, err := crypto.Encrypt(username, key)
 	if err != nil {
@@ -46,8 +40,8 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 		return 0, err
 	}
 
-	stmt := `INSERT INTO users (uuid, username, salt) VALUES (?, ?, ?)`
-	result, err := m.DB.Exec(stmt, uuid.String(), encryptedUsername, salt)
+	stmt := `INSERT INTO users (uuid, username) VALUES (?, ?)`
+	result, err := m.DB.Exec(stmt, uuid.String(), encryptedUsername)
 	if err != nil {
 		return 0, err
 	}
@@ -63,7 +57,7 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 		OldName: "",
 		NewName: encryptedUsername,
 		OldPW:   "",
-		NewPW:   salt,
+		NewPW:   "",
 	}
 
 	err = l.Write(m.DB)
@@ -111,8 +105,8 @@ func (m *UserModel) GetByUUID(id string) (*User, error) {
 }
 
 func (m *UserModel) InsertFromLog(l Log) (int, error) {
-	stmt := `INSERT INTO users (uuid, username, salt) VALUES (?, ?, ?)`
-	result, err := m.DB.Exec(stmt, l.User, l.NewName, l.NewPW)
+	stmt := `INSERT INTO users (uuid, username) VALUES (?, ?)`
+	result, err := m.DB.Exec(stmt, l.User, l.NewName)
 	if err != nil {
 		return 0, err
 	}
@@ -130,7 +124,7 @@ func (m *UserModel) IDtoUUID(id int) (string, error) {
 }
 
 func (m *UserModel) Authenticate(username, password string) (User, error) {
-	stmt := `SELECT uuid, username, salt FROM users`
+	stmt := `SELECT uuid, username FROM users`
 	rows, err := m.DB.Query(stmt)
 	if err != nil {
 		return User{}, err
@@ -138,16 +132,16 @@ func (m *UserModel) Authenticate(username, password string) (User, error) {
 
 	defer rows.Close()
 
+	key := crypto.GetKey(password, username)
 	for rows.Next() {
 		var u User
 		var uuidString string
 
-		err := rows.Scan(&uuidString, &u.encryptedUsername, &u.salt)
+		err := rows.Scan(&uuidString, &u.encryptedUsername)
 		if err != nil {
 			return User{}, err
 		}
 
-		key := crypto.GetKey(password, u.salt)
 		u.Username, err = crypto.Decrypt(u.encryptedUsername, key)
 		if err != nil && err.Error() != "chacha20poly1305: message authentication failed" {
 			return User{}, err
@@ -160,7 +154,7 @@ func (m *UserModel) Authenticate(username, password string) (User, error) {
 				return User{}, err
 			}
 
-			u.AuthToken = crypto.Hash([]byte(password), []byte(u.Username), 10)
+			u.AuthToken = crypto.Hash(key, []byte(password), 10)
 			return u, nil
 		}
 	}

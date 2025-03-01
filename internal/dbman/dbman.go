@@ -24,7 +24,7 @@ func OpenDB(dsn string) (*sql.DB, error) {
 func InitializeDB(db *sql.DB, client bool) error {
 	var stmt string
 	if client {
-		stmt = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, uuid TEXT UNIQUE, username TEXT, salt TEXT, last_sync DATETIME)"
+		stmt = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, uuid TEXT UNIQUE, username TEXT, last_sync DATETIME)"
 	} else {
 		stmt = "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, uuid TEXT UNIQUE, auth_token TEXT)"
 	}

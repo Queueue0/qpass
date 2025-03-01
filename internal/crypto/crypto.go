@@ -67,7 +67,7 @@ func decryptBytes(cyphertext, key, additionalData []byte) ([]byte, error) {
 }
 
 func GetKey(password, salt string) []byte {
-	key := argon2.IDKey([]byte(password), []byte(salt), 100, 64*1024, 2, 32)
+	key := Hash([]byte(password), []byte(salt), 10)
 	return key
 }
 
