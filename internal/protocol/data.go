@@ -48,7 +48,6 @@ func (s *SyncData) Decode(data []byte) error {
 }
 
 type AuthData struct {
-	UUID  string
 	Token []byte
 }
 
@@ -65,6 +64,39 @@ func (d *AuthData) Encode() (data []byte, err error) {
 }
 
 func (d *AuthData) Decode(data []byte) error {
+	var buf bytes.Buffer
+	_, err := buf.Write(data)
+	if err != nil {
+		return err
+	}
+
+	dec := gob.NewDecoder(&buf)
+	err = dec.Decode(d)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+type NewUserData struct {
+	UUID string
+	Token []byte
+}
+
+func (d *NewUserData) Encode() (data []byte, err error) {
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+
+	err = enc.Encode(d)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (d *NewUserData) Decode(data []byte) error {
 	var buf bytes.Buffer
 	_, err := buf.Write(data)
 	if err != nil {

@@ -90,7 +90,25 @@ func (m *UserModel) GetByUUID(id string) (*User, error) {
 		return nil, err
 	}
 
+	return parseFromStrings(uuidStr, tokenStr)
+}
+
+func (m *UserModel) ServerGetByAuthToken(at []byte) (*User, error) {
+	t := base64.RawStdEncoding.EncodeToString(at)
+	row := m.DB.QueryRow("SELECT uuid, auth_token FROM users WHERE auth_token = ?", t)
+
+	var uuidStr, tokenStr string
+	err := row.Scan(&uuidStr, &tokenStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return parseFromStrings(uuidStr, tokenStr)
+}
+
+func parseFromStrings(uuidStr, tokenStr string) (*User, error) {
 	var u User
+	var err error
 	u.ID, err = uuid.Parse(uuidStr)
 	if err != nil {
 		return nil, err

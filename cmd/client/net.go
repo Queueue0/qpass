@@ -30,7 +30,7 @@ func (app *Application) sync() error {
 	}
 
 	activeUUID := app.ActiveUser.ID.String()
-	ad := protocol.AuthData{UUID: activeUUID, Token: app.ActiveUser.AuthToken}
+	ad := protocol.AuthData{Token: app.ActiveUser.AuthToken}
 	authBytes, err := ad.Encode()
 	if err != nil {
 		return err

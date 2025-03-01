@@ -4,12 +4,9 @@ import (
 	"bytes"
 	"log"
 	"net"
-	"strings"
 
 	"github.com/Queueue0/qpass/internal/crypto"
-	"github.com/Queueue0/qpass/internal/models"
 	"github.com/Queueue0/qpass/internal/protocol"
-	"github.com/google/uuid"
 )
 
 func (app *Application) sync(p protocol.Payload, c net.Conn) {
@@ -78,20 +75,20 @@ func (app *Application) authenticate(p protocol.Payload) (bool, error) {
 
 	ad.Token = crypto.Hash(ad.Token, nil, 30)
 
-	u, err := app.users.GetByUUID(ad.UUID)
+	u, err := app.users.ServerGetByAuthToken(ad.Token)
 	if err != nil {
 		log.Println(err.Error())
-		if strings.Contains(err.Error(), "no rows in result set") {
-			// use of MustParse is dangerous here
-			u = &models.User{ID: uuid.MustParse(ad.UUID), AuthToken: ad.Token}
-			_, err = app.users.ServerInsert(*u)
-			if err != nil {
-				return false, err
-			}
-		} else {
-			return false, err
-		}
+		return false, err
 	}
 
 	return bytes.Equal(ad.Token, u.AuthToken), nil
+}
+
+func (app *Application) newUser(p protocol.Payload) error {
+	var nud protocol.NewUserData
+	err := nud.Decode(p.Bytes())
+	if err != nil {
+		return err
+	}
+	return nil
 }
