@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"log"
 	"net"
 
 	"github.com/Queueue0/qpass/internal/crypto"
+	"github.com/Queueue0/qpass/internal/models"
 	"github.com/Queueue0/qpass/internal/protocol"
+	"github.com/google/uuid"
 )
 
 func (app *Application) sync(p protocol.Payload, c net.Conn) {
@@ -84,16 +87,46 @@ func (app *Application) authenticate(p protocol.Payload) (bool, error) {
 	return bytes.Equal(ad.Token, u.AuthToken), nil
 }
 
-func (app *Application) newUser(p protocol.Payload) error {
+var (
+	ErrUserExists     = errors.New("User already exists")
+	ErrUserCreateFail = errors.New("Failed to create new user")
+)
+
+func (app *Application) newUser(p protocol.Payload, c net.Conn) error {
 	var nud protocol.NewUserData
 	err := nud.Decode(p.Bytes())
 	if err != nil {
+		protocol.NewFail(ErrUserCreateFail.Error()).WriteTo(c)
 		return err
 	}
 
-	// Check if user with same auth token exists
+	// Check if user with same auth token or UUID exists
 	// if so, fail
+	_, err = app.users.ServerGetByAuthToken(nud.Token)
+	if err == nil {
+		protocol.NewFail(ErrUserExists.Error()).WriteTo(c)
+		return ErrUserExists
+	}
 
+	_, err = app.users.GetByUUID(nud.UUID)
+	if err == nil {
+		protocol.NewFail(ErrUserExists.Error()).WriteTo(c)
+		return ErrUserExists
+	}
 
-	return nil
+	if err = uuid.Validate(nud.UUID); err != nil {
+		// Might panic because Google's engineers are bastards I guess
+		nud.UUID = uuid.New().String()
+	}
+
+	// Will never panic because of prior validation
+	UUID := uuid.MustParse(nud.UUID)
+	_, err = app.users.ServerInsert(models.User{ID: UUID, AuthToken: nud.Token})
+	if err != nil {
+		protocol.NewFail(ErrUserCreateFail.Error()).WriteTo(c)
+		return err
+	}
+
+	_, err = protocol.NewSuccWithData([]byte(nud.UUID)).WriteTo(c)
+	return err
 }

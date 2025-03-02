@@ -118,6 +118,11 @@ func NewSucc() *Payload {
 	return &Payload{SUCC, []byte{}}
 }
 
+func NewSuccWithData(data []byte) *Payload {
+	// Recepient will just have to know what to do with the data
+	return &Payload{SUCC, data}
+}
+
 func NewFail(message string) *Payload {
 	return &Payload{FAIL, []byte(message)}
 }
