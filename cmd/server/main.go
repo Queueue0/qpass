@@ -130,6 +130,7 @@ connLoop:
 			authenticated, err = app.authenticate(p)
 			if err != nil {
 				protocol.NewFail(authFail).WriteTo(c)
+				log.Println(c.RemoteAddr(), err.Error())
 				continue
 			}
 
@@ -143,6 +144,8 @@ connLoop:
 				protocol.NewFail(notAuthed).WriteTo(c)
 			}
 			app.sync(p, c)
+		case protocol.NUSR:
+			app.newUser(p, c)
 		case protocol.SUSR:
 			if !authenticated {
 				protocol.NewFail(notAuthed).WriteTo(c)

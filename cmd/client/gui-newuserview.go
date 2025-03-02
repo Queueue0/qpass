@@ -10,7 +10,9 @@ import (
 	"gioui.org/unit"
 	"gioui.org/widget"
 	"gioui.org/widget/material"
+	"github.com/Queueue0/qpass/internal/crypto"
 	"github.com/Queueue0/qpass/internal/validator"
+	"github.com/google/uuid"
 )
 
 func (a *Application) NewUserView(w *app.Window) (bool, error) {
@@ -41,12 +43,17 @@ func (a *Application) NewUserView(w *app.Window) (bool, error) {
 				v.CheckField(validator.Matches(cpw, pw), "password", "Passwords don't match")
 
 				if v.Valid() {
-					id, err := a.UserModel.Insert(un, pw)
+					// TODO: Handle the case where this fails better
+					UUID, err := a.newUserSync(crypto.Hash(crypto.GetKey(pw, un), []byte(pw), 10))
 					if err != nil {
-						return false, err
+						rawUUID, err := uuid.NewRandom()
+						if err != nil {
+							return false, err
+						}
+						UUID = rawUUID.String()
 					}
 
-					UUID, err := a.UserModel.IDtoUUID(id)
+					_, err = a.UserModel.Insert(un, pw, UUID)
 					if err != nil {
 						return false, err
 					}

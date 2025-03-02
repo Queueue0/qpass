@@ -100,6 +100,8 @@ func (app *Application) newUser(p protocol.Payload, c net.Conn) error {
 		return err
 	}
 
+	nud.Token = crypto.Hash(nud.Token, nil, 30)
+
 	// Check if user with same auth token or UUID exists
 	// if so, fail
 	_, err = app.users.ServerGetByAuthToken(nud.Token)
@@ -115,12 +117,17 @@ func (app *Application) newUser(p protocol.Payload, c net.Conn) error {
 	}
 
 	if err = uuid.Validate(nud.UUID); err != nil {
-		// Might panic because Google's engineers are bastards I guess
-		nud.UUID = uuid.New().String()
+		temp, err := uuid.NewRandom()
+		if err != nil {
+			protocol.NewFail(ErrUserCreateFail.Error())
+			return err
+		}
+		nud.UUID = temp.String()
 	}
 
-	// Will never panic because of prior validation
+	// Will never panic because of the above validation
 	UUID := uuid.MustParse(nud.UUID)
+
 	_, err = app.users.ServerInsert(models.User{ID: UUID, AuthToken: nud.Token})
 	if err != nil {
 		protocol.NewFail(ErrUserCreateFail.Error()).WriteTo(c)

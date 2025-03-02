@@ -10,6 +10,7 @@ const (
 	PING byte = iota
 	PONG
 	AUTH
+	NUSR
 	SYNC
 	SUSR
 	SPWD
@@ -40,6 +41,8 @@ func (m *Payload) TypeString() string {
 		return "PONG"
 	case AUTH:
 		return "AUTH"
+	case NUSR:
+		return "NUSR"
 	case SYNC:
 		return "SYNC"
 	case SUSR:
@@ -119,6 +122,13 @@ func NewSucc() *Payload {
 }
 
 func NewSuccWithData(data []byte) *Payload {
+	// Panic here to keep things simple when calling this function
+	// SUCC data should never be more than a few bytes, and if it is I've
+	// done something wrong
+	if len(data) > int(MaxPayloadSize) {
+		panic(ErrMaxSizeExceeded)
+	}
+
 	// Recepient will just have to know what to do with the data
 	return &Payload{SUCC, data}
 }

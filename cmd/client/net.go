@@ -8,9 +8,14 @@ import (
 
 	"github.com/Queueue0/qpass/internal/crypto"
 	"github.com/Queueue0/qpass/internal/protocol"
+	"github.com/google/uuid"
 )
 
-var ErrNoActiveUser = errors.New("no logged in user")
+var (
+	ErrNoActiveUser = errors.New("no logged in user")
+	ErrPingFail     = errors.New("Unable to ping sync server")
+	ErrCommFail     = errors.New("Communication with server failed unexpectedly")
+)
 
 func (app *Application) send(p *protocol.Payload) error {
 	c, err := net.Dial("tcp", app.ServerAddress)
@@ -22,6 +27,50 @@ func (app *Application) send(p *protocol.Payload) error {
 	_, err = p.WriteTo(c)
 
 	return err
+}
+
+func (app *Application) newUserSync(authToken []byte) (string, error) {
+	nud := protocol.NewUserData{Token: authToken}
+	b, err := nud.Encode()
+	if err != nil {
+		return "", err
+	}
+
+	c, err := crypto.Dial(app.ServerAddress)
+	if err != nil {
+		return "", ErrPingFail
+	}
+	defer c.Close()
+
+	protocol.NewPing().WriteTo(c)
+	r := protocol.Payload{}
+	r.ReadFrom(c)
+
+	if r.Type() != protocol.PONG {
+		return "", ErrPingFail
+	}
+
+	// Will never error here, only possible error is if max payload size is
+	// exceeded which won't happen with just an auth token
+	p, _ := protocol.NewPayload(protocol.NUSR, b)
+	p.WriteTo(c)
+
+	r = protocol.Payload{}
+	r.ReadFrom(c)
+
+	if r.Type() == protocol.FAIL {
+		return "", errors.New(string(r.Bytes()))
+	}
+
+	if r.Type() != protocol.SUCC {
+		return "", ErrCommFail
+	}
+
+	id := string(r.Bytes())
+	_, err = uuid.Parse(id)
+
+	protocol.NewSucc().WriteTo(c)
+	return id, err
 }
 
 func (app *Application) sync() error {

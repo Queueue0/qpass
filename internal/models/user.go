@@ -27,7 +27,7 @@ type UserModel struct {
 	DB *sql.DB
 }
 
-func (m *UserModel) Insert(username, password string) (int, error) {
+func (m *UserModel) Insert(username, password, uuid string) (int, error) {
 	key := crypto.GetKey(password, username)
 
 	encryptedUsername, err := crypto.Encrypt(username, key)
@@ -35,13 +35,8 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 		return 0, err
 	}
 
-	uuid, err := uuid.NewRandom()
-	if err != nil {
-		return 0, err
-	}
-
 	stmt := `INSERT INTO users (uuid, username) VALUES (?, ?)`
-	result, err := m.DB.Exec(stmt, uuid.String(), encryptedUsername)
+	result, err := m.DB.Exec(stmt, uuid, encryptedUsername)
 	if err != nil {
 		return 0, err
 	}
@@ -53,7 +48,7 @@ func (m *UserModel) Insert(username, password string) (int, error) {
 
 	l := Log{
 		Type:    AUSR,
-		User:    uuid.String(),
+		User:    uuid,
 		OldName: "",
 		NewName: encryptedUsername,
 		OldPW:   "",
