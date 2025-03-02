@@ -90,5 +90,10 @@ func (app *Application) newUser(p protocol.Payload) error {
 	if err != nil {
 		return err
 	}
+
+	// Check if user with same auth token exists
+	// if so, fail
+
+
 	return nil
 }

@@ -98,11 +98,14 @@ func (app *Application) handle(c net.Conn) {
 	app.respond(sc)
 }
 
+const (
+	authFail   = "Auth Failure"
+	notAuthed  = "Not Authenticated"
+)
+
 func (app *Application) respond(c net.Conn) {
 	defer c.Close()
 	authenticated := false
-	authFail := "Auth Failure"
-	notAuthed := "Not Authenticated"
 
 connLoop:
 	for {
