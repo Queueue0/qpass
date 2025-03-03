@@ -160,7 +160,7 @@ func (m *UserModel) Authenticate(username, password string) (User, error) {
 		u.Username, err = crypto.Decrypt(u.encryptedUsername, key)
 		if err != nil {
 			if err.Error() == "chacha20poly1305: message authentication failed" {
-				return User{}, ErrIncorrectCreds
+				continue
 			}
 			return User{}, err
 		}
