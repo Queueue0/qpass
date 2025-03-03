@@ -13,12 +13,16 @@ import (
 )
 
 func (a *Application) LoginView(w *app.Window) error {
-	var ops op.Ops
-	var userName widget.Editor
-	var password widget.Editor
-	var loginBtn widget.Clickable
-	var newUserBtn widget.Clickable
-	var errorTxt string
+	var (
+		ops        op.Ops
+		userName   widget.Editor
+		password   widget.Editor
+		loginBtn   widget.Clickable
+		syncBtn    widget.Clickable
+		newUserBtn widget.Clickable
+		errorTxt   string
+	)
+
 	th := material.NewTheme()
 
 	var login = func() {
@@ -149,6 +153,7 @@ func (a *Application) LoginView(w *app.Window) error {
 				layout.Rigid(
 					func(gtx layout.Context) layout.Dimensions {
 						lbtn := material.Button(th, &loginBtn, "Log In")
+						sbtn := material.Button(th, &syncBtn, "Sync")
 						nubtn := material.Button(th, &newUserBtn, "New User")
 
 						margins := layout.UniformInset(unit.Dp(10))
@@ -162,6 +167,15 @@ func (a *Application) LoginView(w *app.Window) error {
 									return margins.Layout(gtx,
 										func(gtx layout.Context) layout.Dimensions {
 											return lbtn.Layout(gtx)
+										},
+									)
+								},
+							),
+							layout.Flexed(1,
+								func(gtx layout.Context) layout.Dimensions {
+									return margins.Layout(gtx,
+										func(gtx layout.Context) layout.Dimensions {
+											return sbtn.Layout(gtx)
 										},
 									)
 								},

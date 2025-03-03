@@ -136,6 +136,8 @@ func (m *UserModel) IDtoUUID(id int) (string, error) {
 	return UUID, err
 }
 
+var ErrIncorrectCreds = errors.New("Username or password is incorrect")
+
 func (m *UserModel) Authenticate(username, password string) (User, error) {
 	stmt := `SELECT uuid, username FROM users`
 	rows, err := m.DB.Query(stmt)
@@ -156,7 +158,10 @@ func (m *UserModel) Authenticate(username, password string) (User, error) {
 		}
 
 		u.Username, err = crypto.Decrypt(u.encryptedUsername, key)
-		if err != nil && err.Error() != "chacha20poly1305: message authentication failed" {
+		if err != nil {
+			if err.Error() == "chacha20poly1305: message authentication failed" {
+				return User{}, ErrIncorrectCreds
+			}
 			return User{}, err
 		}
 
@@ -172,7 +177,7 @@ func (m *UserModel) Authenticate(username, password string) (User, error) {
 		}
 	}
 
-	return User{}, errors.New("Username or password is incorrect")
+	return User{}, ErrIncorrectCreds
 }
 
 func (m *UserModel) Count() int {

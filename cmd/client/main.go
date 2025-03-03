@@ -113,6 +113,8 @@ func main() {
 			log.Fatal(err)
 		}
 
+		fmt.Println("Active User:", a.ActiveUser)
+		fmt.Println("Key", a.ActiveUser.Key)
 		if len(a.ActiveUser.Key) <= 0 {
 			log.Println("No active user")
 			os.Exit(0)
