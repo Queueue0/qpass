@@ -44,7 +44,7 @@ func (a *Application) NewUserView(w *app.Window) (bool, error) {
 
 				if v.Valid() {
 					// TODO: Handle the case where this fails better
-					UUID, err := a.newUserSync(crypto.Hash(crypto.GetKey(pw, un), []byte(pw), 10))
+					UUID, err := a.newUserSync(crypto.ClientAuthToken(un, pw))
 					if err != nil {
 						rawUUID, err := uuid.NewRandom()
 						if err != nil {

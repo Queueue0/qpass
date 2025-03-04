@@ -15,7 +15,7 @@ import (
 func (a *Application) LoginView(w *app.Window) error {
 	var (
 		ops        op.Ops
-		userName   widget.Editor
+		username   widget.Editor
 		password   widget.Editor
 		loginBtn   widget.Clickable
 		syncBtn    widget.Clickable
@@ -26,12 +26,22 @@ func (a *Application) LoginView(w *app.Window) error {
 	th := material.NewTheme()
 
 	var login = func() {
-		u, err := a.UserModel.Authenticate(userName.Text(), password.Text())
+		u, err := a.UserModel.Authenticate(username.Text(), password.Text())
 		if err != nil {
 			errorTxt = err.Error()
 		} else {
 			a.ActiveUser = &u
 			// TODO: handle this error
+			a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser)
+			w.Perform(system.ActionClose)
+		}
+	}
+
+	var sync = func() {
+		err := a.loginSync(username.Text(), password.Text())
+		if err != nil {
+			errorTxt = err.Error()
+		} else {
 			a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser)
 			w.Perform(system.ActionClose)
 		}
@@ -63,11 +73,15 @@ func (a *Application) LoginView(w *app.Window) error {
 				login()
 			}
 
+			if syncBtn.Clicked(gtx) {
+				sync()
+			}
+
 			if newUserBtn.Clicked(gtx) {
 				addUser()
 			}
 
-			we, ok := userName.Update(gtx)
+			we, ok := username.Update(gtx)
 			if ok {
 				switch we.(type) {
 				case widget.SubmitEvent:
@@ -97,9 +111,9 @@ func (a *Application) LoginView(w *app.Window) error {
 				// Username
 				layout.Rigid(
 					func(gtx layout.Context) layout.Dimensions {
-						txt := material.Editor(th, &userName, "Username")
-						userName.SingleLine = true
-						userName.Submit = true
+						txt := material.Editor(th, &username, "Username")
+						username.SingleLine = true
+						username.Submit = true
 
 						margins := layout.UniformInset(unit.Dp(10))
 						padding := layout.UniformInset(inputPadding)

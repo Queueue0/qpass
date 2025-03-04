@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/Queueue0/qpass/internal/crypto"
@@ -79,6 +80,20 @@ func (app *Application) sync() error {
 	}
 
 	activeUUID := app.ActiveUser.ID.String()
+	lastSync, err := app.Logs.GetLastSync(activeUUID)
+	if err != nil {
+		return err
+	}
+
+	logs, err := app.Logs.GetAllSince(lastSync, activeUUID)
+	if err != nil {
+		// Return early if nothing to do
+		if strings.Contains(err.Error(), "no rows in result set") {
+			return nil
+		}
+		return err
+	}
+
 	ad := protocol.AuthData{Token: app.ActiveUser.AuthToken}
 	authBytes, err := ad.Encode()
 	if err != nil {
@@ -114,16 +129,6 @@ func (app *Application) sync() error {
 
 	if authResp.Type() != protocol.SUCC {
 		return errors.New("Unexpected response type from server")
-	}
-
-	lastSync, err := app.Logs.GetLastSync(activeUUID)
-	if err != nil {
-		return err
-	}
-
-	logs, err := app.Logs.GetAllSince(lastSync, activeUUID)
-	if err != nil {
-		return err
 	}
 
 	sd := protocol.SyncData{LastSync: lastSync, UUID: activeUUID, Logs: logs}
@@ -171,6 +176,77 @@ func (app *Application) sync() error {
 	}
 
 	protocol.NewSucc().WriteTo(c)
+
+	return nil
+}
+
+func (app *Application) loginSync(username, password string) error {
+	// Try to authenticate first
+	u, err := app.UserModel.Authenticate(username, password)
+	if err == nil {
+		// Should maybe make a call to sync in this block
+		app.ActiveUser = &u
+		return nil
+	}
+
+	ad := protocol.AuthData{Token: crypto.ClientAuthToken(username, password)}
+	authBytes, err := ad.Encode()
+	if err != nil {
+		return err
+	}
+
+	apl, err := protocol.NewPayload(protocol.AUTH, authBytes)
+	if err != nil {
+		return err
+	}
+
+	c, err := crypto.Dial(app.ServerAddress)
+	if err != nil {
+		return err
+	}
+	defer protocol.NewSucc().WriteTo(c)
+	defer c.Close()
+
+	_, err = apl.WriteTo(c)
+	if err != nil {
+		return err
+	}
+
+	authResp := protocol.Payload{}
+	_, err = authResp.ReadFrom(c)
+	if err != nil {
+		return err
+	}
+
+	if authResp.Type() == protocol.FAIL {
+		protocol.NewSucc().WriteTo(c)
+		return errors.New("Remote error: " + authResp.String())
+	}
+
+	if authResp.Type() != protocol.SUCC {
+		return errors.New("Unexpected response type from server")
+	}
+
+	idStr := string(authResp.Bytes())
+	_, err = app.UserModel.Insert(username, password, idStr)
+	if err != nil {
+		return err
+	}
+	err = app.Logs.NewLastSync(idStr)
+	if err != nil {
+		return err
+	}
+
+	u, err = app.UserModel.Authenticate(username, password)
+	if err != nil {
+		return err
+	}
+	app.ActiveUser = &u
+
+	err = app.sync()
+	if err != nil {
+		return errors.New("sync: " + err.Error())
+	}
 
 	return nil
 }

@@ -84,3 +84,11 @@ func GenSalt(n uint32) (string, error) {
 func Hash(plaintext []byte, salt []byte, time uint32) []byte {
 	return argon2.IDKey(plaintext, salt, time, 64*1024, 2, 32)
 }
+
+func ClientAuthToken(username, password string) []byte {
+	return Hash(GetKey(password, username), []byte(password), 10)
+}
+
+func ServerAuthToken(token []byte) []byte {
+	return Hash(token, nil, 30)
+}

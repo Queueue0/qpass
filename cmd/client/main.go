@@ -91,20 +91,20 @@ func main() {
 	}
 
 	go func() {
-		if a.UserModel.Count() <= 0 {
-			created := false
-			aw := new(app.Window)
-			aw.Option(app.Title("New User"))
-			aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-			created, err = a.NewUserView(aw)
-			if err != nil {
-				fmt.Println(err.Error())
-			}
-
-			if !created {
-				os.Exit(0)
-			}
-		}
+//		if a.UserModel.Count() <= 0 {
+//			created := false
+//			aw := new(app.Window)
+//			aw.Option(app.Title("New User"))
+//			aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
+//			created, err = a.NewUserView(aw)
+//			if err != nil {
+//				fmt.Println(err.Error())
+//			}
+//
+//			if !created {
+//				os.Exit(0)
+//			}
+//		}
 
 		lw := new(app.Window)
 		lw.Option(app.Title("Login"))
@@ -113,8 +113,6 @@ func main() {
 			log.Fatal(err)
 		}
 
-		fmt.Println("Active User:", a.ActiveUser)
-		fmt.Println("Key", a.ActiveUser.Key)
 		if len(a.ActiveUser.Key) <= 0 {
 			log.Println("No active user")
 			os.Exit(0)

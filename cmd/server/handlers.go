@@ -69,22 +69,22 @@ func (app *Application) userSync(p protocol.Payload, c net.Conn) {
 	p.WriteTo(c)
 }
 
-func (app *Application) authenticate(p protocol.Payload) (bool, error) {
+func (app *Application) authenticate(p protocol.Payload) (bool, string, error) {
 	var ad protocol.AuthData
 	err := ad.Decode(p.Bytes())
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
-	ad.Token = crypto.Hash(ad.Token, nil, 30)
+	ad.Token = crypto.ServerAuthToken(ad.Token)
 
 	u, err := app.users.ServerGetByAuthToken(ad.Token)
 	if err != nil {
 		log.Println(err.Error())
-		return false, err
+		return false, "", err
 	}
 
-	return bytes.Equal(ad.Token, u.AuthToken), nil
+	return bytes.Equal(ad.Token, u.AuthToken), u.ID.String(), nil
 }
 
 var (
@@ -100,7 +100,7 @@ func (app *Application) newUser(p protocol.Payload, c net.Conn) error {
 		return err
 	}
 
-	nud.Token = crypto.Hash(nud.Token, nil, 30)
+	nud.Token = crypto.ServerAuthToken(nud.Token)
 
 	// Check if user with same auth token or UUID exists
 	// if so, fail

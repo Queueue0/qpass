@@ -172,7 +172,7 @@ func (m *UserModel) Authenticate(username, password string) (User, error) {
 				return User{}, err
 			}
 
-			u.AuthToken = crypto.Hash(key, []byte(password), 10)
+			u.AuthToken = crypto.ClientAuthToken(username, password)
 			return u, nil
 		}
 	}

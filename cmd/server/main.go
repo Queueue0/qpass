@@ -127,7 +127,8 @@ connLoop:
 				protocol.NewFail(authFail).WriteTo(c)
 				continue
 			}
-			authenticated, err = app.authenticate(p)
+			var id string
+			authenticated, id, err = app.authenticate(p)
 			if err != nil {
 				protocol.NewFail(authFail).WriteTo(c)
 				log.Println(c.RemoteAddr(), err.Error())
@@ -135,7 +136,7 @@ connLoop:
 			}
 
 			if authenticated {
-				protocol.NewSucc().WriteTo(c)
+				protocol.NewSuccWithData([]byte(id)).WriteTo(c)
 			} else {
 				protocol.NewFail(authFail).WriteTo(c)
 			}
