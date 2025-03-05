@@ -32,7 +32,7 @@ func (a *Application) LoginView(w *app.Window) error {
 		} else {
 			a.ActiveUser = &u
 			// TODO: handle this error
-			a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser)
+			a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser, false)
 			w.Perform(system.ActionClose)
 		}
 	}
@@ -42,7 +42,7 @@ func (a *Application) LoginView(w *app.Window) error {
 		if err != nil {
 			errorTxt = err.Error()
 		} else {
-			a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser)
+			a.Passwords, _ = a.PasswordModel.GetAllForUser(*a.ActiveUser, false)
 			w.Perform(system.ActionClose)
 		}
 	}

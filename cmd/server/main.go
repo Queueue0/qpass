@@ -14,7 +14,6 @@ import (
 type Application struct {
 	users     *models.UserModel
 	passwords *models.PasswordModel
-	logs      *models.LogModel
 	homeDir   string
 }
 
@@ -52,14 +51,9 @@ func main() {
 		DB: db,
 	}
 
-	lm := models.LogModel{
-		DB: db,
-	}
-
 	a := Application{
 		users:     &um,
 		passwords: &pm,
-		logs:      &lm,
 		homeDir:   qpassHome,
 	}
 
@@ -147,11 +141,6 @@ connLoop:
 			app.sync(p, c)
 		case protocol.NUSR:
 			app.newUser(p, c)
-		case protocol.SUSR:
-			if !authenticated {
-				protocol.NewFail(notAuthed).WriteTo(c)
-			}
-			app.userSync(p, c)
 		case protocol.SUCC:
 			break connLoop
 		}

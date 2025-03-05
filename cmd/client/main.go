@@ -18,7 +18,6 @@ type Application struct {
 	ActiveUser    *models.User
 	PasswordModel *models.PasswordModel
 	Passwords     models.PasswordList
-	Logs          *models.LogModel
 	ServerAddress string
 }
 
@@ -49,14 +48,9 @@ func main() {
 		DB: db,
 	}
 
-	lm := models.LogModel{
-		DB: db,
-	}
-
 	a := Application{
 		UserModel:     &um,
 		PasswordModel: &pm,
-		Logs:          &lm,
 		ActiveUser:    &models.User{},
 		ServerAddress: "127.0.0.1:10448",
 	}

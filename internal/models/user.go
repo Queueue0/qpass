@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"errors"
-	"fmt"
 
 	"github.com/Queueue0/qpass/internal/crypto"
 	"github.com/google/uuid"
@@ -44,21 +43,6 @@ func (m *UserModel) Insert(username, password, uuid string) (int, error) {
 	id, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
-	}
-
-	l := Log{
-		Type:    AUSR,
-		User:    uuid,
-		OldName: "",
-		NewName: encryptedUsername,
-		OldPW:   "",
-		NewPW:   "",
-	}
-
-	err = l.Write(m.DB)
-	if err != nil {
-		fmt.Println(err.Error())
-		return int(id), LogWriteError
 	}
 
 	return int(id), nil
@@ -115,17 +99,6 @@ func parseFromStrings(uuidStr, tokenStr string) (*User, error) {
 	}
 
 	return &u, nil
-}
-
-func (m *UserModel) InsertFromLog(l Log) (int, error) {
-	stmt := `INSERT INTO users (uuid, username) VALUES (?, ?)`
-	result, err := m.DB.Exec(stmt, l.User, l.NewName)
-	if err != nil {
-		return 0, err
-	}
-
-	id, err := result.LastInsertId()
-	return int(id), err
 }
 
 func (m *UserModel) IDtoUUID(id int) (string, error) {

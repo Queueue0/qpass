@@ -21,14 +21,22 @@ func (app *Application) sync(p protocol.Payload, c net.Conn) {
 		return
 	}
 
-	responseLogs, err := app.logs.GetAllSince(sd.LastSync, sd.UUID)
+	// TODO: Process received passwords
+
+	id, err := uuid.Parse(sd.UUID)
+	if err != nil {
+		protocol.NewFail(err.Error()).WriteTo(c)
+		return
+	}
+
+	pws, err := app.passwords.GetAllForUser(models.User{ID: id}, true)
 	if err != nil {
 		protocol.NewFail(err.Error()).WriteTo(c)
 		return
 	}
 
 	rd := protocol.SyncData{
-		Logs: responseLogs,
+		Passwords: pws,
 	}
 	rdBytes, err := rd.Encode()
 	if err != nil {
@@ -43,30 +51,6 @@ func (app *Application) sync(p protocol.Payload, c net.Conn) {
 	}
 
 	response.WriteTo(c)
-
-	// write received logs
-	for _, l := range sd.Logs {
-		l.Write(app.users.DB)
-	}
-}
-
-func (app *Application) userSync(p protocol.Payload, c net.Conn) {
-	var sd protocol.SyncData
-	err := sd.Decode(p.Bytes())
-	if err != nil {
-		log.Println(err.Error())
-		fail := protocol.NewFail(err.Error())
-		fail.WriteTo(c)
-		return
-	}
-
-	for _, l := range sd.Logs {
-		log.Println(l.String())
-	}
-
-	// For now, just respond with the same payload
-	// TODO: Make this actually work
-	p.WriteTo(c)
 }
 
 func (app *Application) authenticate(p protocol.Payload) (bool, string, error) {

@@ -58,11 +58,6 @@ func (a *Application) NewUserView(w *app.Window) (bool, error) {
 						return false, err
 					}
 
-					err = a.Logs.NewLastSync(UUID)
-					if err != nil {
-						return false, err
-					}
-
 					created = true
 					w.Perform(system.ActionClose)
 				}

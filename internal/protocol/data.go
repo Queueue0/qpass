@@ -3,7 +3,6 @@ package protocol
 import (
 	"bytes"
 	"encoding/gob"
-	"time"
 
 	"github.com/Queueue0/qpass/internal/models"
 )
@@ -14,9 +13,8 @@ type PayloadData interface {
 }
 
 type SyncData struct {
-	LastSync time.Time
-	UUID     string
-	Logs     []models.Log
+	UUID      string
+	Passwords models.PasswordList
 }
 
 func (s *SyncData) Encode() (data []byte, err error) {
@@ -80,7 +78,7 @@ func (d *AuthData) Decode(data []byte) error {
 }
 
 type NewUserData struct {
-	UUID string
+	UUID  string
 	Token []byte
 }
 
