@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
-	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -221,10 +220,6 @@ func (m *PasswordModel) GetAllEncryptedForUser(u User) (PasswordList, error) {
 			return nil, err
 		}
 
-		fmt.Println(pw.EServiceName)
-		fmt.Println(pw.EUsername)
-		fmt.Println(pw.EPassword)
-
 		pws = append(pws, pw)
 	}
 
@@ -262,9 +257,6 @@ func (m *PasswordModel) ReplaceAllForUser(userID string, pwl PasswordList) error
 	}
 
 	for _, pw := range pwl {
-		fmt.Println(pw.EServiceName)
-		fmt.Println(pw.EUsername)
-		fmt.Println(pw.EPassword)
 		if !bytes.Equal(userUUID[:], pw.UserID[:]) {
 			return errors.New("Passwords not for this user")
 		}

@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"log"
 	"net"
 
@@ -23,7 +22,6 @@ func (app *Application) sync(p protocol.Payload, c net.Conn) {
 	}
 
 	for _, p := range sd.Passwords {
-		fmt.Println(p.UUID.String())
 		exists, err := app.passwords.Exists(p.UUID.String())
 		if err != nil {
 			protocol.NewFail(err.Error()).WriteTo(c)
@@ -73,10 +71,6 @@ func (app *Application) sync(p protocol.Payload, c net.Conn) {
 	if err != nil {
 		protocol.NewFail(err.Error()).WriteTo(c)
 		return
-	}
-
-	for _, p := range pws {
-		fmt.Println(p.UUID.String())
 	}
 
 	rd := protocol.SyncData{

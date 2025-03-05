@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net"
 
 	"github.com/Queueue0/qpass/internal/crypto"
@@ -74,7 +73,7 @@ func (app *Application) sync() error {
 		return errors.New("Unexpected response type from server")
 	}
 
-	pws, err := app.PasswordModel.GetAllForUser(*app.ActiveUser, true)
+	pws, err := app.PasswordModel.GetAllEncryptedForUser(*app.ActiveUser)
 	if err != nil {
 		return err
 	}
@@ -108,10 +107,6 @@ func (app *Application) sync() error {
 	err = rd.Decode(r.Bytes())
 	if err != nil {
 		return err
-	}
-
-	for _, p := range rd.Passwords {
-		fmt.Println(p.UUID.String())
 	}
 
 	err = app.PasswordModel.ReplaceAllForUser(app.ActiveUser.ID.String(), rd.Passwords)
