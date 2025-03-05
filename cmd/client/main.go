@@ -116,6 +116,10 @@ func main() {
 		if err != nil {
 			log.Println(err.Error())
 		}
+		a.Passwords, err = a.PasswordModel.GetAllForUser(*a.ActiveUser, false)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		w := new(app.Window)
 		w.Option(app.Title("QPass"))

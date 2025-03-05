@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -22,26 +23,26 @@ type Password struct {
 	Password     string
 	LastChanged  time.Time
 	Deleted      bool
-	eServiceName string
-	eUsername    string
-	ePassword    string
+	EServiceName string
+	EUsername    string
+	EPassword    string
 }
 
 type PasswordList []Password
 
 func (p *Password) decrypt(u User) error {
 	var err error
-	p.ServiceName, err = crypto.Decrypt(p.eServiceName, u.Key)
+	p.ServiceName, err = crypto.Decrypt(p.EServiceName, u.Key)
 	if err != nil {
 		return err
 	}
 
-	p.Username, err = crypto.Decrypt(p.eUsername, u.Key)
+	p.Username, err = crypto.Decrypt(p.EUsername, u.Key)
 	if err != nil {
 		return err
 	}
 
-	p.Password, err = crypto.Decrypt(p.ePassword, u.Key)
+	p.Password, err = crypto.Decrypt(p.EPassword, u.Key)
 	if err != nil {
 		return err
 	}
@@ -87,7 +88,7 @@ func (m *PasswordModel) Insert(u User, serviceName, username, password string) (
 	}
 
 	stmt := `INSERT INTO passwords (uuid, userId, service, username, password) VALUES (?, ?, ?, ?, ?)`
-	result, err := m.DB.Exec(stmt, UUID, u.ID.String(), eServiceName, eUsername, ePassword)
+	result, err := m.DB.Exec(stmt, UUID.String(), u.ID.String(), eServiceName, eUsername, ePassword)
 	if err != nil {
 		return 0, err
 	}
@@ -106,7 +107,7 @@ func (m *PasswordModel) Get(id int, u User) (Password, error) {
 
 	p := Password{}
 	var uuidStr string
-	err := r.Scan(&p.ID, &uuidStr, &p.UserID, &p.eServiceName, &p.eUsername, &p.ePassword, &p.LastChanged, &p.Deleted)
+	err := r.Scan(&p.ID, &uuidStr, &p.UserID, &p.EServiceName, &p.EUsername, &p.EPassword, &p.LastChanged, &p.Deleted)
 	if err != nil {
 		return Password{}, err
 	}
@@ -124,8 +125,34 @@ func (m *PasswordModel) Get(id int, u User) (Password, error) {
 	return p, nil
 }
 
+func (m *PasswordModel) GetByUUID(UUID string) (Password, error) {
+	stmt := `SELECT id, uuid, userId, service, username, password, last_changed, deleted FROM passwords WHERE uuid = ?`
+	r := m.DB.QueryRow(stmt, UUID)
+
+	p := Password{}
+	var uuidStr string
+	var useridStr string
+	err := r.Scan(&p.ID, &uuidStr, &useridStr, &p.EServiceName, &p.EUsername, &p.EPassword, &p.LastChanged, &p.Deleted)
+	if err != nil {
+		return Password{}, err
+	}
+
+	p.UUID, err = uuid.Parse(uuidStr)
+	if err != nil {
+		return Password{}, err
+	}
+
+	p.UserID, err = uuid.Parse(useridStr)
+	if err != nil {
+		return Password{}, err
+	}
+
+	// No need to decrypt in cases where this function is used
+	return p, nil
+}
+
 func (m *PasswordModel) GetAllForUser(u User, includeDeleted bool) (PasswordList, error) {
-	stmt := `SELECT id, userId, service, username, password, last_changed, deleted FROM passwords WHERE userId = ?`
+	stmt := `SELECT id, uuid, userId, service, username, password, last_changed, deleted FROM passwords WHERE userId = ?`
 	rows, err := m.DB.Query(stmt, u.ID.String())
 	if err != nil {
 		return nil, err
@@ -135,7 +162,8 @@ func (m *PasswordModel) GetAllForUser(u User, includeDeleted bool) (PasswordList
 	for rows.Next() {
 		pw := Password{}
 		var uuidString string
-		err := rows.Scan(&pw.ID, &uuidString, &pw.eServiceName, &pw.eUsername, &pw.ePassword, &pw.LastChanged, &pw.Deleted)
+		var useridString string
+		err := rows.Scan(&pw.ID, &uuidString, &useridString, &pw.EServiceName, &pw.EUsername, &pw.EPassword, &pw.LastChanged, &pw.Deleted)
 		if err != nil {
 			return nil, err
 		}
@@ -149,7 +177,12 @@ func (m *PasswordModel) GetAllForUser(u User, includeDeleted bool) (PasswordList
 			return nil, err
 		}
 
-		pw.UserID, err = uuid.Parse(uuidString)
+		pw.UUID, err = uuid.Parse(uuidString)
+		if err != nil {
+			return nil, err
+		}
+
+		pw.UserID, err = uuid.Parse(useridString)
 		if err != nil {
 			return nil, err
 		}
@@ -161,21 +194,65 @@ func (m *PasswordModel) GetAllForUser(u User, includeDeleted bool) (PasswordList
 	return pws, nil
 }
 
+func (m *PasswordModel) GetAllEncryptedForUser(u User) (PasswordList, error) {
+	stmt := `SELECT id, uuid, userId, service, username, password, last_changed, deleted FROM passwords WHERE userId = ?`
+	rows, err := m.DB.Query(stmt, u.ID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	pws := PasswordList{}
+	for rows.Next() {
+		pw := Password{}
+		var uuidString string
+		var useridString string
+		err := rows.Scan(&pw.ID, &uuidString, &useridString, &pw.EServiceName, &pw.EUsername, &pw.EPassword, &pw.LastChanged, &pw.Deleted)
+		if err != nil {
+			return nil, err
+		}
+
+		pw.UUID, err = uuid.Parse(uuidString)
+		if err != nil {
+			return nil, err
+		}
+
+		pw.UserID, err = uuid.Parse(useridString)
+		if err != nil {
+			return nil, err
+		}
+
+		fmt.Println(pw.EServiceName)
+		fmt.Println(pw.EUsername)
+		fmt.Println(pw.EPassword)
+
+		pws = append(pws, pw)
+	}
+
+	return pws, nil
+}
+
 func (m *PasswordModel) DumbUpdate(p Password) error {
 	stmt := `UPDATE passwords SET service = ?, username = ?, password = ?, last_changed = ?, deleted = ? WHERE uuid = ?`
-	_, err := m.DB.Exec(stmt, p.eServiceName, p.eUsername, p.ePassword, p.LastChanged, p.Deleted, p.UUID.String())
+	_, err := m.DB.Exec(stmt, p.EServiceName, p.EUsername, p.EPassword, p.LastChanged, p.Deleted, p.UUID.String())
 	return err
 }
 
 func (m *PasswordModel) DumbInsert(p Password) error {
 	stmt := `INSERT INTO passwords (uuid, userId, service, username, password, last_changed, deleted) VALUES (?, ?, ?, ?, ?, ?, ?)`
-	_, err := m.DB.Exec(stmt, p.UUID.String(), p.UserID.String(), p.eUsername, p.ePassword, p.LastChanged, p.Deleted)
+	_, err := m.DB.Exec(stmt, p.UUID.String(), p.UserID.String(), p.EServiceName, p.EUsername, p.EPassword, p.LastChanged, p.Deleted)
 	return err
 }
 
 func (m *PasswordModel) Delete(UUID string) error {
 	_, err := m.DB.Exec("DELETE FROM passwords WHERE uuid = ?", UUID)
 	return err
+}
+
+func (m *PasswordModel) Exists(UUID string) (bool, error) {
+	row := m.DB.QueryRow("SELECT EXISTS(SELECT uuid FROM passwords WHERE uuid = ?)", UUID)
+	var result bool
+	err := row.Scan(&result)
+	return result, err
 }
 
 func (m *PasswordModel) ReplaceAllForUser(userID string, pwl PasswordList) error {
@@ -185,6 +262,9 @@ func (m *PasswordModel) ReplaceAllForUser(userID string, pwl PasswordList) error
 	}
 
 	for _, pw := range pwl {
+		fmt.Println(pw.EServiceName)
+		fmt.Println(pw.EUsername)
+		fmt.Println(pw.EPassword)
 		if !bytes.Equal(userUUID[:], pw.UserID[:]) {
 			return errors.New("Passwords not for this user")
 		}

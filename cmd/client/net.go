@@ -2,7 +2,7 @@ package main
 
 import (
 	"errors"
-	"log"
+	"fmt"
 	"net"
 
 	"github.com/Queueue0/qpass/internal/crypto"
@@ -50,7 +50,10 @@ func (app *Application) sync() error {
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer func() {
+		protocol.NewSucc().WriteTo(c)
+		c.Close()
+	}()
 
 	_, err = apl.WriteTo(c)
 	if err != nil {
@@ -64,7 +67,6 @@ func (app *Application) sync() error {
 	}
 
 	if authResp.Type() == protocol.FAIL {
-		protocol.NewSucc().WriteTo(c)
 		return errors.New("Remote error: " + authResp.String())
 	}
 
@@ -99,9 +101,6 @@ func (app *Application) sync() error {
 		return err
 	}
 	if r.Type() == protocol.FAIL {
-		// For now, SUCC is the only way to terminate a connection
-		// Should probably add a DONE or something instead
-		protocol.NewSucc().WriteTo(c)
 		return errors.New("Remote error: " + r.String())
 	}
 
@@ -111,12 +110,15 @@ func (app *Application) sync() error {
 		return err
 	}
 
-	// TODO: Handle response data
 	for _, p := range rd.Passwords {
-		log.Println(p)
+		fmt.Println(p.UUID.String())
 	}
 
-	protocol.NewSucc().WriteTo(c)
+	err = app.PasswordModel.ReplaceAllForUser(app.ActiveUser.ID.String(), rd.Passwords)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -188,8 +190,10 @@ func (app *Application) loginSync(username, password string) error {
 	if err != nil {
 		return err
 	}
-	defer protocol.NewSucc().WriteTo(c)
-	defer c.Close()
+	defer func() {
+		protocol.NewSucc().WriteTo(c)
+		c.Close()
+	}()
 
 	_, err = apl.WriteTo(c)
 	if err != nil {

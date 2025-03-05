@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"log"
 	"net"
 
@@ -21,7 +22,46 @@ func (app *Application) sync(p protocol.Payload, c net.Conn) {
 		return
 	}
 
-	// TODO: Process received passwords
+	for _, p := range sd.Passwords {
+		fmt.Println(p.UUID.String())
+		exists, err := app.passwords.Exists(p.UUID.String())
+		if err != nil {
+			protocol.NewFail(err.Error()).WriteTo(c)
+			return
+		}
+
+		if !exists {
+			err = app.passwords.DumbInsert(p)
+			if err != nil {
+				protocol.NewFail(err.Error()).WriteTo(c)
+				return
+			}
+			continue
+		}
+
+		if p.Deleted {
+			err = app.passwords.Delete(p.UUID.String())
+			if err != nil {
+				protocol.NewFail(err.Error()).WriteTo(c)
+				return
+			}
+			continue
+		}
+
+		current, err := app.passwords.GetByUUID(p.UUID.String())
+		if err != nil {
+			protocol.NewFail(err.Error()).WriteTo(c)
+			return
+		}
+
+		if p.LastChanged.After(current.LastChanged) {
+			err = app.passwords.DumbUpdate(p)
+			if err != nil {
+				protocol.NewFail(err.Error()).WriteTo(c)
+				return
+			}
+		}
+	}
 
 	id, err := uuid.Parse(sd.UUID)
 	if err != nil {
@@ -29,10 +69,14 @@ func (app *Application) sync(p protocol.Payload, c net.Conn) {
 		return
 	}
 
-	pws, err := app.passwords.GetAllForUser(models.User{ID: id}, true)
+	pws, err := app.passwords.GetAllEncryptedForUser(models.User{ID: id})
 	if err != nil {
 		protocol.NewFail(err.Error()).WriteTo(c)
 		return
+	}
+
+	for _, p := range pws {
+		fmt.Println(p.UUID.String())
 	}
 
 	rd := protocol.SyncData{
