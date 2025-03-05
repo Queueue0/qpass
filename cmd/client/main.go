@@ -18,7 +18,7 @@ type Application struct {
 	ActiveUser    *models.User
 	PasswordModel *models.PasswordModel
 	Passwords     models.PasswordList
-	ServerAddress string
+	Config        *Config
 }
 
 func main() {
@@ -48,15 +48,20 @@ func main() {
 		DB: db,
 	}
 
+	c, err := ConfigInit()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	a := Application{
 		UserModel:     &um,
 		PasswordModel: &pm,
 		ActiveUser:    &models.User{},
-		ServerAddress: "127.0.0.1:10448",
+		Config:        c,
 	}
 
 	// Connect to and ping server
-	sc, err := crypto.Dial(a.ServerAddress)
+	sc, err := crypto.Dial(a.Config.ServerAddress)
 	if err != nil {
 		log.Println("Failed to connect to server", err.Error())
 	}
@@ -85,20 +90,20 @@ func main() {
 	}
 
 	go func() {
-//		if a.UserModel.Count() <= 0 {
-//			created := false
-//			aw := new(app.Window)
-//			aw.Option(app.Title("New User"))
-//			aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-//			created, err = a.NewUserView(aw)
-//			if err != nil {
-//				fmt.Println(err.Error())
-//			}
-//
-//			if !created {
-//				os.Exit(0)
-//			}
-//		}
+		//		if a.UserModel.Count() <= 0 {
+		//			created := false
+		//			aw := new(app.Window)
+		//			aw.Option(app.Title("New User"))
+		//			aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
+		//			created, err = a.NewUserView(aw)
+		//			if err != nil {
+		//				fmt.Println(err.Error())
+		//			}
+		//
+		//			if !created {
+		//				os.Exit(0)
+		//			}
+		//		}
 
 		lw := new(app.Window)
 		lw.Option(app.Title("Login"))
