@@ -1,6 +1,6 @@
 module github.com/Queueue0/qpass
 
-go 1.24.0
+go 1.24.1
 
 require (
 	gio.tools/icons v0.0.0-20240708021058-44790e75e701
