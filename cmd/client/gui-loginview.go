@@ -20,6 +20,7 @@ func (a *Application) LoginView(w *app.Window) error {
 		loginBtn   widget.Clickable
 		syncBtn    widget.Clickable
 		newUserBtn widget.Clickable
+		optionsBtn widget.Clickable
 		errorTxt   string
 	)
 
@@ -166,8 +167,9 @@ func (a *Application) LoginView(w *app.Window) error {
 						lbtn := material.Button(th, &loginBtn, "Log In")
 						sbtn := material.Button(th, &syncBtn, "Sync")
 						nubtn := material.Button(th, &newUserBtn, "New User")
+						obtn := material.Button(th, &optionsBtn, "⚙️")
 
-						margins := layout.UniformInset(unit.Dp(10))
+						margins := layout.UniformInset(unit.Dp(5))
 
 						return layout.Flex{
 							Axis:    layout.Horizontal,
@@ -196,6 +198,15 @@ func (a *Application) LoginView(w *app.Window) error {
 									return margins.Layout(gtx,
 										func(gtx layout.Context) layout.Dimensions {
 											return nubtn.Layout(gtx)
+										},
+									)
+								},
+							),
+							layout.Flexed(0.33,
+								func (gtx layout.Context) layout.Dimensions {
+									return margins.Layout(gtx,
+										func (gtx layout.Context) layout.Dimensions {
+											return obtn.Layout(gtx)
 										},
 									)
 								},

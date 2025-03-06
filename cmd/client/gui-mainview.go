@@ -206,6 +206,8 @@ func (a *Application) MainView(w *app.Window) error {
 			e.Frame(gtx.Ops)
 
 		case app.DestroyEvent:
+			fmt.Println("Syncing...")
+			a.sync()
 			return e.Err
 		}
 	}
