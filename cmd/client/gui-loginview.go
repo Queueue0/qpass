@@ -62,6 +62,18 @@ func (a *Application) LoginView(w *app.Window) error {
 		}()
 	}
 
+	var options = func() {
+		go func() {
+			ow := new(app.Window)
+			ow.Option(app.Title("Settings"))
+			ow.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
+			err := a.OptionView(ow)
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+		}()
+	}
+
 	for {
 		switch e := w.Event().(type) {
 		case app.FrameEvent:
@@ -77,6 +89,10 @@ func (a *Application) LoginView(w *app.Window) error {
 
 			if newUserBtn.Clicked(gtx) {
 				addUser()
+			}
+
+			if optionsBtn.Clicked(gtx) {
+				options()
 			}
 
 			we, ok := username.Update(gtx)
@@ -173,9 +189,9 @@ func (a *Application) LoginView(w *app.Window) error {
 
 						return layout.Flex{
 							Axis:    layout.Horizontal,
-							Spacing: layout.SpaceAround,
+							Spacing: layout.SpaceSides,
 						}.Layout(gtx,
-							layout.Flexed(1,
+							layout.Rigid(
 								func(gtx layout.Context) layout.Dimensions {
 									return margins.Layout(gtx,
 										func(gtx layout.Context) layout.Dimensions {
@@ -184,7 +200,7 @@ func (a *Application) LoginView(w *app.Window) error {
 									)
 								},
 							),
-							layout.Flexed(1,
+							layout.Rigid(
 								func(gtx layout.Context) layout.Dimensions {
 									return margins.Layout(gtx,
 										func(gtx layout.Context) layout.Dimensions {
@@ -193,7 +209,7 @@ func (a *Application) LoginView(w *app.Window) error {
 									)
 								},
 							),
-							layout.Flexed(1,
+							layout.Rigid(
 								func(gtx layout.Context) layout.Dimensions {
 									return margins.Layout(gtx,
 										func(gtx layout.Context) layout.Dimensions {
@@ -202,7 +218,7 @@ func (a *Application) LoginView(w *app.Window) error {
 									)
 								},
 							),
-							layout.Flexed(0.33,
+							layout.Rigid(
 								func (gtx layout.Context) layout.Dimensions {
 									return margins.Layout(gtx,
 										func (gtx layout.Context) layout.Dimensions {
