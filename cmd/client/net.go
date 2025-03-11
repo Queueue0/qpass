@@ -16,7 +16,7 @@ var (
 )
 
 func (app *Application) send(p *protocol.Payload) error {
-	c, err := net.Dial("tcp", app.Config.ServerAddress)
+	c, err := net.Dial("tcp", app.ServerAddress())
 	if err != nil {
 		return err
 	}
@@ -45,7 +45,7 @@ func (app *Application) sync() error {
 		return err
 	}
 
-	c, err := crypto.Dial(app.Config.ServerAddress)
+	c, err := crypto.Dial(app.ServerAddress())
 	if err != nil {
 		return err
 	}
@@ -124,7 +124,7 @@ func (app *Application) newUserSync(authToken []byte) (string, error) {
 		return "", err
 	}
 
-	c, err := crypto.Dial(app.Config.ServerAddress)
+	c, err := crypto.Dial(app.ServerAddress())
 	if err != nil {
 		return "", ErrPingFail
 	}
@@ -181,7 +181,7 @@ func (app *Application) loginSync(username, password string) error {
 		return err
 	}
 
-	c, err := crypto.Dial(app.Config.ServerAddress)
+	c, err := crypto.Dial(app.ServerAddress())
 	if err != nil {
 		return err
 	}

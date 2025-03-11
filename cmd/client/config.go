@@ -12,6 +12,7 @@ import (
 type Config struct {
 	configPath    string
 	ServerAddress string
+	ServerPort    string
 }
 
 func ConfigInit() (*Config, error) {
@@ -51,4 +52,8 @@ func (c *Config) Save() error {
 
 	encoder := toml.NewEncoder(file)
 	return encoder.Encode(c)
+}
+
+func (a *Application) ServerAddress() string {
+	return fmt.Sprintf("%s:%s", a.Config.ServerAddress, a.Config.ServerPort)
 }

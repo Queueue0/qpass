@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"image/color"
 
 	"gioui.org/app"
@@ -25,13 +26,23 @@ func (a *Application) OptionView(w *app.Window) error {
 		th *material.Theme = material.NewTheme()
 	)
 
+	addressEd.SetText(a.Config.ServerAddress)
+	portEd.SetText(a.Config.ServerPort)
+
 	for {
 		switch e := w.Event().(type) {
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
 
 			if saveBtn.Clicked(gtx) {
-				// Validate input, save, and reload config
+				// TODO: Validate input, better error handling
+				a.Config.ServerAddress = addressEd.Text()
+				a.Config.ServerPort = portEd.Text()
+				err := a.Config.Save()
+				if err != nil {
+					fmt.Println(err.Error())
+				}
+				w.Perform(system.ActionClose)
 			}
 
 			if cancelBtn.Clicked(gtx) {
