@@ -33,8 +33,8 @@ func (gl gpwList) sort() {
 	})
 }
 
-func newGPassword(p models.Password) gPassword {
-	return gPassword{
+func newGPassword(p models.Password) *gPassword {
+	return &gPassword{
 		ServiceName: p.ServiceName,
 		Username:    p.Username,
 		Password:    p.Password,

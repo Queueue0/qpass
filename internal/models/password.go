@@ -278,21 +278,29 @@ func (m *PasswordModel) ReplaceAllForUser(userID string, pwl PasswordList) error
 }
 
 func (pl PasswordList) Search(searchTerm string) PasswordList {
+	if strings.TrimSpace(searchTerm) == "" {
+		return pl
+	}
+
+	searchTerm = strings.ToLower(searchTerm)
+
 	res := PasswordList{}
 	for _, p := range pl {
 		if !p.isDecrypted() {
 			continue
 		}
 
-		if strings.Contains(p.ServiceName, searchTerm) {
+		sn := strings.ToLower(p.ServiceName)
+		if strings.Contains(sn, searchTerm) {
 			res = append(res, p)
 			continue
 		}
 
-		if strings.Contains(p.Username, searchTerm) {
-			res = append(res, p)
-			continue
-		}
+		// un := strings.ToLower(p.Username)
+		// if strings.Contains(un, searchTerm) {
+		// 	res = append(res, p)
+		// 	continue
+		// }
 	}
 	return res
 }

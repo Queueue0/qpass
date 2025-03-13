@@ -20,13 +20,17 @@ func (a *Application) MainView(w *app.Window) error {
 	pws := gpwList{}
 	for _, p := range a.Passwords {
 		gp := newGPassword(p)
-		pws = append(pws, &gp)
+		pws = append(pws, gp)
 	}
 
-	var ops op.Ops
-	var addBtn widget.Clickable
-	var pwlist widget.List
-	th := material.NewTheme()
+	var (
+		ops       op.Ops
+		searchBox widget.Editor
+		searchBtn widget.Clickable
+		addBtn    widget.Clickable
+		pwlist    widget.List
+		th        = material.NewTheme()
+	)
 
 	pwlist.List.Axis = layout.Vertical
 
@@ -34,6 +38,16 @@ func (a *Application) MainView(w *app.Window) error {
 		switch e := w.Event().(type) {
 		case app.FrameEvent:
 			gtx := app.NewContext(&ops, e)
+
+			if searchBtn.Clicked(gtx) {
+				sl := a.Passwords.Search(searchBox.Text())
+				pws = nil
+				for _, p := range sl {
+					pws = append(pws, newGPassword(p))
+				}
+				pws.sort()
+				w.Invalidate()
+			}
 
 			if addBtn.Clicked(gtx) {
 				go func() {
@@ -48,7 +62,7 @@ func (a *Application) MainView(w *app.Window) error {
 					if np.ID > 0 {
 						a.Passwords = append(a.Passwords, np)
 						gp := newGPassword(np)
-						pws = append(pws, &gp)
+						pws = append(pws, gp)
 						pws.sort()
 						w.Invalidate()
 					}
@@ -70,6 +84,49 @@ func (a *Application) MainView(w *app.Window) error {
 				Axis:    layout.Vertical,
 				Spacing: layout.SpaceEnd,
 			}.Layout(gtx,
+				layout.Rigid(
+					func(gtx layout.Context) layout.Dimensions {
+						return layout.Flex{
+							Axis:    layout.Horizontal,
+							Spacing: layout.SpaceSides,
+						}.Layout(gtx,
+							layout.Flexed(1,
+								func(gtx layout.Context) layout.Dimensions {
+									txt := material.Editor(th, &searchBox, "Search")
+									searchBox.SingleLine = true
+
+									margins := layout.UniformInset(unit.Dp(10))
+									padding := layout.UniformInset(inputPadding)
+
+									border := widget.Border{
+										Color:        borderColor,
+										CornerRadius: unit.Dp(1),
+										Width:        unit.Dp(2),
+									}
+
+									return margins.Layout(gtx,
+										func(gtx layout.Context) layout.Dimensions {
+											return border.Layout(gtx,
+												func(gtx layout.Context) layout.Dimensions {
+													return padding.Layout(gtx, txt.Layout)
+												},
+											)
+										},
+									)
+								},
+							),
+							layout.Rigid(
+								func(gtx layout.Context) layout.Dimensions {
+									inset := layout.UniformInset(unit.Dp(10))
+									btn := material.Button(th, &searchBtn, "Search")
+									return inset.Layout(gtx, func(gtx layout.Context) layout.Dimensions {
+										return btn.Layout(gtx)
+									})
+								},
+							),
+						)
+					},
+				),
 				// Button
 				layout.Rigid(
 					func(gtx layout.Context) layout.Dimensions {
