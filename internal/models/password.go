@@ -100,6 +100,27 @@ func (m *PasswordModel) Insert(u User, serviceName, username, password string) (
 	return int(id), nil
 }
 
+func (m *PasswordModel) Update(u User, id, serviceName, username, password string) error {
+	eServiceName, err := crypto.Encrypt(serviceName, u.Key)
+	if err != nil {
+		return err
+	}
+
+	eUsername, err := crypto.Encrypt(username, u.Key)
+	if err != nil {
+		return err
+	}
+
+	ePassword, err := crypto.Encrypt(password, u.Key)
+	if err != nil {
+		return err
+	}
+
+	stmt := `UPDATE passwords SET service = ?, username = ?, password = ? WHERE uuid = ?`
+	_, err = m.DB.Exec(stmt, eServiceName, eUsername, ePassword, id)
+	return err
+}
+
 func (m *PasswordModel) Get(id int, u User) (Password, error) {
 	stmt := `SELECT id, uuid, userId, service, username, password, last_changed, deleted FROM passwords WHERE id = ?`
 	r := m.DB.QueryRow(stmt, id)
