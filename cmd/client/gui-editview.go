@@ -4,7 +4,6 @@ import (
 	"image/color"
 
 	"gioui.org/app"
-	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
@@ -56,7 +55,7 @@ func (a *Application) EditView(w *app.Window, p *models.Password) error {
 					p.ServiceName = npw.ServiceName
 					p.Username = npw.Username
 					p.Password = npw.Password
-					w.Perform(system.ActionClose)
+					return nil
 				}
 			}
 

@@ -50,24 +50,19 @@ func (a *Application) MainView(w *app.Window) error {
 			}
 
 			if addBtn.Clicked(gtx) {
-				go func() {
-					aw := new(app.Window)
-					aw.Option(app.Title("New Password"))
-					aw.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-					np, err := a.AddView(aw)
-					if err != nil {
-						fmt.Println(err.Error())
-					}
+				np, err := a.AddView(w)
+				if err != nil {
+					fmt.Println(err.Error())
+				}
 
-					if np.ID > 0 {
-						a.Passwords = append(a.Passwords, np)
-						a.Passwords.Sort()
-						gp := newGPassword(np)
-						pws = append(pws, gp)
-						pws.sort()
-						w.Invalidate()
-					}
-				}()
+				if np.ID > 0 {
+					a.Passwords = append(a.Passwords, np)
+					a.Passwords.Sort()
+					gp := newGPassword(np)
+					pws = append(pws, gp)
+					pws.sort()
+					w.Invalidate()
+				}
 			}
 
 			for i := range pws {
@@ -81,20 +76,13 @@ func (a *Application) MainView(w *app.Window) error {
 				}
 
 				if p.EditBtn.Clicked(gtx) {
-					go func() {
-						ew := new(app.Window)
-						ew.Option(app.Title("Edit Password"))
-						ew.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
-
-						err := a.EditView(ew, &a.Passwords[i])
-						if err != nil {
-							fmt.Println(err.Error())
-							return
-						}
-
+					err := a.EditView(w, &a.Passwords[i])
+					if err != nil {
+						fmt.Println(err.Error())
+					} else {
 						pws[i] = newGPassword(a.Passwords[i])
 						w.Invalidate()
-					}()
+					}
 				}
 			}
 

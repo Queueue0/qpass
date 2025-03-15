@@ -4,7 +4,6 @@ import (
 	"image/color"
 
 	"gioui.org/app"
-	"gioui.org/io/system"
 	"gioui.org/layout"
 	"gioui.org/op"
 	"gioui.org/unit"
@@ -51,7 +50,7 @@ func (a *Application) AddView(w *app.Window) (models.Password, error) {
 						Password:    pw,
 					}
 
-					w.Perform(system.ActionClose)
+					return np, nil
 				}
 			}
 
