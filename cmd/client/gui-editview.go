@@ -48,6 +48,14 @@ func (a *Application) EditView(w *app.Window, p *models.Password) error {
 						return err
 					}
 
+					npw, err := a.PasswordModel.Get(p.ID, *a.ActiveUser)
+					if err != nil {
+						return err
+					}
+
+					p.ServiceName = npw.ServiceName
+					p.Username = npw.Username
+					p.Password = npw.Password
 					w.Perform(system.ActionClose)
 				}
 			}

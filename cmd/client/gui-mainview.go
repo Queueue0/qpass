@@ -61,6 +61,7 @@ func (a *Application) MainView(w *app.Window) error {
 
 					if np.ID > 0 {
 						a.Passwords = append(a.Passwords, np)
+						a.Passwords.Sort()
 						gp := newGPassword(np)
 						pws = append(pws, gp)
 						pws.sort()
@@ -77,6 +78,23 @@ func (a *Application) MainView(w *app.Window) error {
 
 				if p.ShowBtn.Clicked(gtx) {
 					p.toggleShow()
+				}
+
+				if p.EditBtn.Clicked(gtx) {
+					go func() {
+						ew := new(app.Window)
+						ew.Option(app.Title("Edit Password"))
+						ew.Option(app.Size(unit.Dp(1280), unit.Dp(720)))
+
+						err := a.EditView(ew, &a.Passwords[i])
+						if err != nil {
+							fmt.Println(err.Error())
+							return
+						}
+
+						pws[i] = newGPassword(a.Passwords[i])
+						w.Invalidate()
+					}()
 				}
 			}
 
@@ -250,6 +268,12 @@ func (a *Application) MainView(w *app.Window) error {
 													layout.Rigid(
 														func(gtx layout.Context) layout.Dimensions {
 															btn := material.IconButton(th, p.CopyBtn, icons.ContentContentCopy, "Copy Password")
+															return btn.Layout(gtx)
+														},
+													),
+													layout.Rigid(
+														func(gtx layout.Context) layout.Dimensions {
+															btn := material.IconButton(th, p.EditBtn, icons.ImageEdit, "Edit")
 															return btn.Layout(gtx)
 														},
 													),

@@ -19,6 +19,7 @@ type gPassword struct {
 	Shown       bool
 	ShowBtn     *widget.Clickable
 	CopyBtn     *widget.Clickable
+	EditBtn     *widget.Clickable
 }
 
 func (p *gPassword) toggleShow() {
@@ -41,5 +42,6 @@ func newGPassword(p models.Password) *gPassword {
 		Shown:       false,
 		ShowBtn:     &widget.Clickable{},
 		CopyBtn:     &widget.Clickable{},
+		EditBtn:     &widget.Clickable{},
 	}
 }
