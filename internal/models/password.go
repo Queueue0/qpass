@@ -116,8 +116,8 @@ func (m *PasswordModel) Update(u User, id, serviceName, username, password strin
 		return err
 	}
 
-	stmt := `UPDATE passwords SET service = ?, username = ?, password = ? WHERE uuid = ?`
-	_, err = m.DB.Exec(stmt, eServiceName, eUsername, ePassword, id)
+	stmt := `UPDATE passwords SET service = ?, username = ?, password = ?, last_changed = ? WHERE uuid = ?`
+	_, err = m.DB.Exec(stmt, eServiceName, eUsername, ePassword, time.Now(), id)
 	return err
 }
 
