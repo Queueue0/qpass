@@ -66,7 +66,26 @@ func (app *Application) sync() error {
 	}
 
 	if authResp.Type() == protocol.FAIL {
-		return errors.New("Remote error: " + authResp.String())
+		// Try to add new user, then retry auth
+		_, err := app.newUserSync(app.ActiveUser.ID.String(), app.ActiveUser.AuthToken)
+		if err != nil {
+			return err
+		}
+
+		_, err = apl.WriteTo(c)
+		if err != nil {
+			return err
+		}
+
+		authResp = protocol.Payload{}
+		_, err = authResp.ReadFrom(c)
+		if err != nil {
+			return err
+		}
+
+		if authResp.Type() == protocol.FAIL {
+			return errors.New("Remote error: " + authResp.String())
+		}
 	}
 
 	if authResp.Type() != protocol.SUCC {
@@ -117,8 +136,12 @@ func (app *Application) sync() error {
 	return nil
 }
 
-func (app *Application) newUserSync(authToken []byte) (string, error) {
+func (app *Application) newUserSync(id string, authToken []byte) (string, error) {
 	nud := protocol.NewUserData{Token: authToken}
+	if id != "" {
+		nud.UUID = id
+	}
+
 	b, err := nud.Encode()
 	if err != nil {
 		return "", err
@@ -154,11 +177,11 @@ func (app *Application) newUserSync(authToken []byte) (string, error) {
 		return "", ErrCommFail
 	}
 
-	id := string(r.Bytes())
-	_, err = uuid.Parse(id)
+	newid := string(r.Bytes())
+	_, err = uuid.Parse(newid)
 
 	protocol.NewSucc().WriteTo(c)
-	return id, err
+	return newid, err
 }
 
 func (app *Application) loginSync(username, password string) error {
